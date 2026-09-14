@@ -236,6 +236,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.triggering_actor }}
+          BRANCH: ${{ github.ref_name }}
           ENV_LINE: ${{ steps.env.outputs.line }}
         run: |
           if [ -z "$SLACK_WEBHOOK_URL" ]; then echo "No SLACK_WEBHOOK_URL secret — skipping Slack."; exit 0; fi
@@ -252,6 +253,11 @@ jobs:
           # reads as an alert feed instead of a report.
           if [ "$RESULT" = "success" ]; then icon="✅"; mark=":check-mark-button:"; verb="Passed"; else icon="❌"; mark=":cross-mark:"; verb="Failed"; fi
           if [ "$EVENT_NAME" = "schedule" ]; then who=":robot: Automated (scheduled)"; else who=":scientist-2: Manual by @$ACTOR"; fi
+          # Which branch this ran against. A dispatch can pick any branch in the "Use workflow
+          # from" dropdown, and the result means something different depending on the answer —
+          # a red run on a feature branch is expected, the same red on main is an incident.
+          # Written as text rather than an emoji, so it renders in any workspace.
+          [ -n "$BRANCH" ] && who="$who · branch \`$BRANCH\`"
           case "$SUITE" in
             smoke) suite_name='Smoke' ;;
             regression) suite_name='Regression' ;;
