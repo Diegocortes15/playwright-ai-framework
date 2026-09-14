@@ -38,14 +38,6 @@ on:
           - webkit
           - all
         default: chromium
-      # Free text on purpose: a team already has a name for what it is testing, and no
-      # enumeration survives contact with one. Optional — a run that declares nothing still
-      # records the fingerprint the deployment served, which is the half that cannot lie.
-      app_build:
-        description: 'Version under test, e.g. 2.4.0-hotfix.1 (optional)'
-        type: string
-        required: false
-        default: ''
 
 permissions:
   contents: read
@@ -165,7 +157,6 @@ jobs:
           SAUCEDEMO_PASSWORD: ${{ secrets.SAUCEDEMO_PASSWORD }}
           QASE_API_TOKEN: ${{ secrets.QASE_API_TOKEN }}
           QASE_PROJECT_CODE: ${{ secrets.QASE_PROJECT_CODE }}
-          APP_BUILD: ${{ inputs.app_build }}
           CI: 'true'
         # One script holds the engine → project mapping, so what CI runs and what a QA runs
         # locally cannot drift. It also exports RUN_ENGINES, which is how the Qase record and
@@ -204,14 +195,6 @@ jobs:
 
           then open the URL it prints.
           TXT
-
-      # Small, and the first thing a triage asks for: which build did this run exercise.
-      - name: Upload the build record (always)
-        if: ${{ !cancelled() && hashFiles('test-results/app-build.json') != '' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: app-build-${{ needs.gate.outputs.suite }}-${{ needs.gate.outputs.browser }}
-          path: test-results/app-build.json
 
       - name: Upload HTML report (always)
         if: ${{ !cancelled() }}
@@ -263,23 +246,34 @@ jobs:
             if [ "$secs" -ge 60 ]; then dur="$((secs/60))m $((secs%60))s"; else dur="${secs}s"; fi
           fi
           # icon → unicode for the notification/fallback text; mark → custom emoji for the in-channel body.
-          if [ "$RESULT" = "success" ]; then icon="✅"; mark=":check-mark-button:"; verb="passed"; else icon="❌"; mark=":cross-mark:"; verb="FAILED"; fi
+          # Title Case throughout, including the verb. The red cross already carries the alarm,
+          # so shouting FAILED adds volume rather than information, and a channel that shouts
+          # reads as an alert feed instead of a report.
+          if [ "$RESULT" = "success" ]; then icon="✅"; mark=":check-mark-button:"; verb="Passed"; else icon="❌"; mark=":cross-mark:"; verb="Failed"; fi
           if [ "$EVENT_NAME" = "schedule" ]; then who=":robot: Automated (scheduled)"; else who=":scientist-2: Manual by @$ACTOR"; fi
-          suite_uc=$(printf '%s' "$SUITE" | tr '[:lower:]' '[:upper:]')
+          case "$SUITE" in
+            smoke) suite_name='Smoke' ;;
+            regression) suite_name='Regression' ;;
+            *) suite_name="$SUITE" ;;
+          esac
           # The engine belongs in the headline, not buried in the environment line: someone
           # scanning the channel needs to know at a glance that the failure is WebKit-only.
-          [ "$BROWSER" != 'chromium' ] && suite_uc="$suite_uc ($BROWSER)"
-          body="*$mark $suite_uc $verb*"$'\n'"$who"
+          # It is carried TWICE on purpose — a workspace emoji and the product's own name —
+          # because an emoji that fails to render, or a reader who does not know the icons,
+          # would otherwise lose the fact entirely. Chromium is named like the rest even
+          # though it is the default: a reader should never have to know what the absence
+          # of a word means.
+          case "$BROWSER" in
+            chromium) engine=':chrome:'; engine_text=' (Chromium)' ;;
+            firefox) engine=':firefox:'; engine_text=' (Firefox)' ;;
+            webkit) engine=':webkit:'; engine_text=' (WebKit)' ;;
+            all) engine=':chrome::firefox::webkit:'; engine_text=' (All)' ;;
+            *) engine=''; engine_text=" ($BROWSER)" ;;
+          esac
+          body="*$mark $engine $suite_name$engine_text $verb*"$'\n'"$who"
           [ -n "$counts" ] && body="$body"$'\n'"$counts"
           [ -n "$dur" ] && body="$body"$'\n'":stopwatch-2: Ran in $dur"
           [ -n "$ENV_LINE" ] && body="$body"$'\n'":performing-arts: $ENV_LINE"
-          # What the run was executed AGAINST. When a test breaks, the first question is
-          # whether anything moved on the application's side, and this is the line that
-          # answers it without anyone opening an artifact.
-          if [ -f test-results/app-build.json ]; then
-            build=$(jq -r '"\(.fingerprint)" + (if .declared then " · declared \(.declared)" else "" end)' test-results/app-build.json 2>/dev/null || true)
-            [ -n "$build" ] && body="$body"$'\n'":package: Build under test: $build"
-          fi
           # Custom emoji outside the <url|label> so Slack renders them (emoji inside link text don't render).
           [ -n "$QASE_RUN_URL" ] && body="$body"$'\n'":qase: <$QASE_RUN_URL|Qase run>"
           # Observations: a COUNT plus where to look. Dumping the contents here is how
@@ -298,4 +292,4 @@ jobs:
           # gh CLI; without gh, download the zip from the run page above and follow the
           # HOW-TO-OPEN.txt inside it.
           body="$body"$'\n'":inbox-tray: Open it (needs \`gh\`): \`gh run download $RUN_ID -n playwright-report-$SUITE-$BROWSER -D /tmp/pw-$RUN_ID && npx playwright show-report /tmp/pw-$RUN_ID\`"
-          jq -n --arg t "$icon $suite_uc $verb" --arg b "$body" '{text: $t, blocks: [{type: "section", text: {type: "mrkdwn", text: $b}}]}' | curl -sS -X POST -H 'Content-type: application/json' -d @- "$SLACK_WEBHOOK_URL"
+          jq -n --arg t "$icon $suite_name$engine_text $verb" --arg b "$body" '{text: $t, blocks: [{type: "section", text: {type: "mrkdwn", text: $b}}]}' | curl -sS -X POST -H 'Content-type: application/json' -d @- "$SLACK_WEBHOOK_URL"

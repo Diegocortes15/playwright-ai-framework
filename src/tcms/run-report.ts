@@ -10,7 +10,6 @@ import {
   parseEngines,
   type Engine,
 } from '../utils/run-environment';
-import { readAppBuild, formatAppBuild } from '../utils/app-build';
 
 const SEP = ' › '; // matches map-store's logical-key separator
 const QASE_WEB_BASE = 'https://app.qase.io'; // cloud web app (run links); self-hosted differs
@@ -146,11 +145,7 @@ export async function recordRun(label?: string, engines?: readonly Engine[]): Pr
   // Stamp the run with what it executed on + how long it took, so the Qase record
   // stands alone (matches the report metadata + the Slack notification).
   const durationMs = typeof report?.stats?.duration === 'number' ? report.stats.duration : 0;
-  // The build under test is the field a triage conversation opens with — "did it change on
-  // their side?" — so the Qase record carries it beside the environment and the duration.
-  const build = readAppBuild();
-  const buildLine = build ? `Build under test: ${formatAppBuild(build)}\n` : '';
-  const description = `${buildLine}Environment: ${formatEnvironmentLine(runEnvironment(), engines)}\nDuration: ${formatDuration(durationMs)}`;
+  const description = `Environment: ${formatEnvironmentLine(runEnvironment(), engines)}\nDuration: ${formatDuration(durationMs)}`;
   const runId = await new QaseClient(cfg).recordResults(results, {
     jiraKey: '',
     sourceUrl: '',

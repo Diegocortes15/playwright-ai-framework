@@ -14,7 +14,6 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const RESULTS = join('test-results', 'results.json');
-const APP_BUILD = join('test-results', 'app-build.json');
 const OBSERVATIONS = join('.observations', 'observations.json');
 const TCMS_DIR = '.tcms/records';
 
@@ -54,23 +53,6 @@ function acceptanceCriterion(feature, title) {
   }
   const acText = records.find((r) => r.title === title)?.acText;
   return acText ? { acText } : { missing: 'no-matching-record' };
-}
-
-/**
- * Which build of the application the run was executed against.
- *
- * This is the field that separates the readings in `Which is wrong?`: an app that moved
- * since the last green run points one way, an app that did not points at the test. Absent
- * is a normal answer — a run from before this was recorded, or a bare `playwright test`
- * that never reached the probe — so it is reported as a reason, never as an error.
- */
-function appBuild() {
-  if (!existsSync(APP_BUILD)) return { missing: 'no-build-record' };
-  try {
-    return JSON.parse(readFileSync(APP_BUILD, 'utf-8'));
-  } catch {
-    return { missing: 'unreadable-build-record' };
-  }
 }
 
 function observationsFor(attachment) {
@@ -145,12 +127,7 @@ function main() {
 
   console.log(
     JSON.stringify(
-      {
-        generatedAt: new Date().toISOString().slice(0, 10),
-        appBuild: appBuild(),
-        failures,
-        knownObservations: OBSERVATIONS,
-      },
+      { generatedAt: new Date().toISOString().slice(0, 10), failures, knownObservations: OBSERVATIONS },
       null,
       2,
     ),
