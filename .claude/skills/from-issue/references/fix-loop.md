@@ -43,7 +43,7 @@ diagnosis isn't converging, and further attempts spend tokens without producing 
 - add `await page.waitForTimeout()` (lint blocks it — use auto-waiting assertions)
 - reinterpret an AC to match observed behavior
 - edit a spec or Page Object member this run did not generate — the one exception is the
-  deliberate `po_modified` modification already resolved in Step 5
+  deliberate Page Object modification already resolved in Step 5
 
 Each of these reaches green by making the run worthless. If green is only reachable that way,
 the run is blocked: report it.
