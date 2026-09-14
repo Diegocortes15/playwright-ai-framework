@@ -71,16 +71,6 @@ export RUN_ENGINES="$ENGINES"
 LABEL="$(printf '%s' "$SUITE" | tr '[:lower:]' '[:upper:]')"
 [ "$BROWSER" != 'chromium' ] && LABEL="${LABEL} · $(printf '%s' "$BROWSER" | tr '[:lower:]' '[:upper:]')"
 
-# Probe the application BEFORE Playwright starts. The report's header chips come from the
-# config, which is evaluated synchronously inside every worker, so the only way the build
-# under test reaches the report is an env var that already exists by then. globalSetup
-# mutating config.metadata does not reach it — measured on Playwright 1.59.1.
-# Never fatal: the probe records its own failure (`unreachable`, `http-503`) rather than
-# raising, and a run must not be blocked by the thing that merely labels it.
-APP_BUILD_LINE="$(npx tsx src/utils/app-build.ts 2>/dev/null || true)"
-export APP_BUILD_LINE
-[ -n "$APP_BUILD_LINE" ] && echo "run-suite: build under test — ${APP_BUILD_LINE}"
-
 GREP=()
 [ "$SUITE" = 'smoke' ] && GREP=(--grep "@smoke")
 

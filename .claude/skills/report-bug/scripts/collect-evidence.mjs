@@ -23,25 +23,6 @@ import { readFileSync, existsSync, mkdirSync, copyFileSync, writeFileSync, rmSyn
 import { join, extname, basename } from 'node:path';
 
 const RESULTS = join('test-results', 'results.json');
-const APP_BUILD = join('test-results', 'app-build.json');
-
-// Which build of the application the run was executed against, as one readable line.
-// It belongs in the evidence folder because that folder is what gets attached to a ticket,
-// and "did the app move?" is the first question asked of it. Returns undefined when the
-// record is absent. It always returns a line: someone who sees nothing here cannot tell
-// whether the application was unchanged or simply unmeasured, and those lead to opposite
-// conclusions. The report template carries the same rule for the same reason.
-function buildLine() {
-  const unrecorded = 'not recorded for this run';
-  if (!existsSync(APP_BUILD)) return unrecorded;
-  try {
-    const b = JSON.parse(readFileSync(APP_BUILD, 'utf-8'));
-    const declared = b.declared ? ` (declared ${b.declared})` : '';
-    return `${b.fingerprint}${declared} at ${b.baseUrl}`;
-  } catch {
-    return unrecorded;
-  }
-}
 const ANSI = new RegExp('\\u001b\\[[0-9;]*m', 'g');
 const stripAnsi = (s = '') => s.replace(ANSI, '');
 
@@ -113,9 +94,6 @@ for (const spec of eachSpec({ suites: report.suites ?? [] })) {
           `Project:   ${project}`,
           `Spec:      ${spec.file}:${spec.line}`,
           `Collected: ${new Date().toISOString().slice(0, 10)}`,
-          // Whoever reads this folder without the repository cannot otherwise tell whether
-          // the application moved under the test, which is half of the triage.
-          `Build:     ${buildLine()}`,
           '',
           'Failure',
           '-------',
@@ -152,10 +130,6 @@ for (const spec of eachSpec({ suites: report.suites ?? [] })) {
         ].join('\n'),
         'utf-8',
       );
-      if (existsSync(APP_BUILD)) {
-        copyFileSync(APP_BUILD, join(dir, 'app-build.json'));
-        files.push('app-build.json');
-      }
       files.push('README.txt');
 
       collected.push({ title: spec.title, project, dir, files });

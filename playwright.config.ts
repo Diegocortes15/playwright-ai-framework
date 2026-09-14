@@ -39,10 +39,6 @@ const CROSS_BROWSERS = [
 export default defineConfig({
   testDir: './tests',
 
-  // Probes which build of the application this run is about to exercise, once, in the main
-  // process. `metadata` below says what we run WITH; this says what we run AGAINST.
-  globalSetup: './src/utils/global-setup.ts',
-
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -54,10 +50,6 @@ export default defineConfig({
   // a lie a worker process could not back up. A chromium-only run therefore lists Chromium
   // alone, and any cross-browser run lists all three.
   metadata: {
-    // What this run was executed AGAINST, when the shell probed it first (see
-    // `app-build.ts`'s CLI). Absent on a bare `npx playwright test`, where the probe can
-    // only happen in globalSetup — after the config was read — rather than shown stale.
-    ...(process.env.APP_BUILD_LINE ? { App: process.env.APP_BUILD_LINE } : {}),
     OS: env.os,
     Chromium: env.chromium,
     ...(crossBrowserRequested ? { Firefox: env.firefox, WebKit: env.webkit } : {}),

@@ -56,7 +56,7 @@ and the message says which is which.
 - **The ticket is wrong** — the app behaves as designed, and the AC describes something it never did. A refinement.
 - **The automation is wrong** — the app and the AC are both fine, and the test encodes an assumption the app never promised to keep. A fix to this repository, and it gets its own ticket like any other work.
 
-The build under test, collected as `appBuild`, is the evidence that moves weight between them: an application that changed since the last green run makes the third reading likelier. It **narrows** the question and never closes it, and when no build was recorded say that rather than reasoning as though nothing moved.
+Nothing in the run distinguishes them for you. What the app currently serves is checkable — open the trace's DOM snapshot at the failing step, and probe the live page — and that **narrows** the question without closing it: markup that no longer matches the test says the assumption is stale, not who should have changed.
 
 They are indistinguishable from the failure alone. A report that asserts "the application has a bug" when the truth was a badly written AC — or a locator of ours that was always too loose — sends someone chasing a ghost, and the credibility of every later report goes with it.
 

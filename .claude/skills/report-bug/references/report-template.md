@@ -10,10 +10,6 @@ reports should find the same thing in the same place every time.
 
 **Environment:** <project, e.g. chromium-problem> · <feature> · found by automated test
 
-**Build under test:** <appBuild.fingerprint, plus "(declared X)" when one was declared> — or
-"not recorded for this run" when `appBuild.missing` is set. Never omit the line: a reader who
-sees nothing cannot tell whether the app was unchanged or simply unmeasured.
-
 ## Steps to reproduce
 
 1. <reproSteps[0]>
@@ -34,7 +30,6 @@ sees nothing cannot tell whether the app was unchanged or simply unmeasured.
 - **If the ticket:** <one sentence>
 - **If the automation:** <one sentence — the app is fine and the test encodes a stale or over-loose assumption about it>
 - <the repository's own documentation, cited, when it covers this — say whether it specifies intended behaviour or records a known defect; the second does not make the behaviour correct>
-- <when the build under test differs from the last known-good one, say so here and say only that: a moved application makes the third reading likelier, and settles nothing>
 
 ## Evidence
 
