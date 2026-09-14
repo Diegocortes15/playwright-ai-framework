@@ -53,6 +53,23 @@ jobs:
       # Formatting drifts silently without a gate: four files sat unformatted on main for
       # months because nothing checked. `.observations/` is excluded in .prettierignore —
       # it is machine-written, not source.
+      # Tests of the FRAMEWORK, not of the application: the Qase mirror, the exit-code rule,
+      # the observation signatures, the report annotations. They live in src/ under their own
+      # config, so they never share an invocation with the specs in tests/ — `npm test`
+      # resolves zero of them.
+      #
+      # Pull requests only, and on purpose. A `pull_request` run checks out the MERGE commit
+      # (refs/pull/N/merge), so this already tests the merged result; re-running it on push
+      # would re-test the same tree. They cost under two seconds, which is why they sit beside
+      # the linters rather than behind a scoping rule.
+      #
+      # They are here because the two defects found on 2026-09-14 were both in this code and
+      # invisible to every Playwright test of saucedemo: run-and-report.ts swallowed the test
+      # run's exit code, and report-annotations.ts silently produced nothing.
+      - name: Unit tests (framework)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: npm run test:unit
+
       - name: Format check
         run: npm run format:check
 
