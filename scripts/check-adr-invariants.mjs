@@ -11,7 +11,7 @@
 // names the ADR. A check whose failure does not say which decision it protects teaches people
 // to silence it.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 const failures = [];
 
@@ -38,6 +38,41 @@ const failures = [];
             'supersede ADR-0007 with a record that says why it changed.',
         );
       }
+    }
+  }
+}
+
+// --- ADR-0030: "A finding is reported, never acted on; triage is a human decision" -------
+//
+// `npx playwright init-agents` is one command, and it writes a `playwright-test-healer`
+// agent whose prompt says "do the most reasonable thing possible to pass the test" and lists
+// "Fixing assertions and expected values" among its jobs. Installing it would reverse
+// ADR-0030 by adding files that no code review reads, which is exactly the accidental
+// reversal ADR-0023 exists to prevent.
+//
+// Scoped to the HEALER, deliberately. The planner and generator agents decide nothing and
+// are nobody's problem; a rule banning every generated agent would be broader than any
+// record here contains.
+{
+  // Every directory `init-agents` writes to, across its four loop providers.
+  const agentDirs = [
+    '.claude/agents',
+    '.claude/prompts',
+    '.github/agents',
+    '.github/chatmodes',
+    '.github/prompts',
+    '.opencode/prompts',
+  ];
+  for (const dir of agentDirs) {
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir)) {
+      if (!entry.toLowerCase().includes('heal')) continue;
+      failures.push(
+        `ADR-0030: ${dir}/${entry} looks like Playwright's test-healer, and that ADR decided ` +
+          'a failing test is diagnosed and reported, never auto-fixed — its prompt optimises ' +
+          'for a passing test rather than a true one. Remove it, or supersede ADR-0030 with a ' +
+          'record that says why it changed.',
+      );
     }
   }
 }

@@ -50,7 +50,7 @@ and the message says which is which.
 
 ### 2. Decide what kind of failure this is
 
-**This is the judgment the skill exists to support, and it is not yours to settle.** Read the acceptance criterion against the actual behaviour and present *both* readings:
+**This is the judgment the skill exists to support, and it is not yours to settle.** The rule is wider than this skill and does not depend on it being invoked: ADR-0030 makes it any finding, and `docs/triage.md` in the origin repository carries the full workflow, including what happens after the report. Read the acceptance criterion against the actual behaviour and present *both* readings:
 
 - **The application is wrong** — the test faithfully encodes the AC, and the app does not do it. A defect.
 - **The ticket is wrong** — the app behaves as designed, and the AC describes something it never did. A refinement.
