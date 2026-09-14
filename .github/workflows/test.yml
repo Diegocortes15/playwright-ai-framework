@@ -73,21 +73,34 @@ jobs:
       # drags in the whole suite — which is exactly the scaling pain we're avoiding.
       # Changing a shared Page Object therefore won't re-run its OTHER dependents here;
       # the full suite on merge (below) is the integration gate that catches that.
-      - name: Run changed spec files (pull request)
+      # Runs the specs a change actually reaches, resolved by scripts/affected-specs.sh so
+      # CI and a local /from-issue run cannot disagree about what "related tests" means.
+      #
+      # The rule this replaces looked only at changed `.spec.ts` files and exited 0 when it
+      # found none, so a pull request touching only a Page Object ran ZERO tests and
+      # reported success. PR #94 — the fix that took `main` out of a red state — did exactly
+      # that: it changed src/pages/InventoryPage.ts, nothing under tests/, and passed having
+      # run nothing. The resolver answers ALL whenever it cannot map a change (ADR-0031).
+      - name: Run affected specs (pull request)
         if: ${{ github.event_name == 'pull_request' }}
         env:
           SAUCEDEMO_PASSWORD: ${{ secrets.SAUCEDEMO_PASSWORD }}
           CI: 'true'
         run: |
-          base="${{ github.event.pull_request.base.sha }}"
-          changed=$(git diff --name-only --diff-filter=AM "$base"...HEAD -- 'tests/' | grep '\.spec\.ts$' || true)
-          if [ -z "$changed" ]; then
-            echo "No spec files added/modified in this PR — nothing to run."
+          affected=$(scripts/affected-specs.sh "${{ github.event.pull_request.base.sha }}")
+          if [ -z "$affected" ]; then
+            echo "Nothing under test changed — no specs to run."
             exit 0
           fi
-          echo "Changed spec files:"
-          echo "$changed"
-          npx playwright test $changed
+          if [ "$affected" = "ALL" ]; then
+            echo "Change reaches shared code — running the full suite."
+            npm test
+          else
+            echo "Affected specs:"
+            echo "$affected"
+            # shellcheck disable=SC2086 # deliberate word-splitting into separate paths
+            npx playwright test $affected
+          fi
 
       # On merge (push): run the full suite so the Qase catalog sync below has every
       # test's steps/status. (A lighter merge + a separate scheduled full regression

@@ -1,7 +1,7 @@
 # 0010 — /from-issue augment mode (extend existing specs, not one file per issue)
 
 **Date:** 2026-05-24
-**Status:** Accepted
+**Status:** Accepted. Its verification mitigation — _"mitigated by running the full suite locally whenever a member is modified"_ — is superseded by [ADR-0031](0031-verification-scope-fails-safe.md), which resolves scope mechanically and fails safe. Augment mode itself, and everything else here, stands.
 **Enforced by:** **Nothing — prose only.** Lives in `/from-issue`'s workflow; it governs agent behaviour, which no check can verify.
 
 ## Context
