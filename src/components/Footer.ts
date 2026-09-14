@@ -8,7 +8,7 @@ import { type Locator, type Page } from '@playwright/test';
 // The saucedemo footer is DOM-identical on every authenticated page
 // (data-test="footer"), so it lives as a shared component rather than
 // page-direct locators.
-export type SocialNetwork = 'twitter' | 'facebook' | 'linkedin';
+export type SocialNetwork = 'x' | 'facebook' | 'linkedin';
 
 export class Footer {
   readonly root: Locator;
@@ -19,7 +19,7 @@ export class Footer {
     this.root = page.locator('[data-test="footer"]');
     this.copyright = page.locator('[data-test="footer-copy"]');
     this.socialLinks = {
-      twitter: page.locator('[data-test="social-twitter"]'),
+      x: page.locator('[data-test="social-x"]'),
       facebook: page.locator('[data-test="social-facebook"]'),
       linkedin: page.locator('[data-test="social-linkedin"]'),
     };
@@ -28,6 +28,12 @@ export class Footer {
   // Queries — return data, never a Locator (ADR-0001 rule #8).
   async getSocialLinkHref(network: SocialNetwork): Promise<string> {
     return (await this.socialLinks[network].getAttribute('href')) ?? '';
+  }
+
+  // SW-18: the visible label, which the href alone does not catch — the rebrand
+  // changed the anchor's text as well as its target.
+  async getSocialLinkLabel(network: SocialNetwork): Promise<string> {
+    return (await this.socialLinks[network].textContent())?.trim() ?? '';
   }
 
   async getCopyrightText(): Promise<string> {

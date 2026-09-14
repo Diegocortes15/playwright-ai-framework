@@ -66,11 +66,11 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE console failure",
-        "url": "https://www.saucedemo.com/assets/index-DtWleVu9.js",
+        "url": "https://www.saucedemo.com/assets/index-D3OxT1jE.js",
         "test": "console-error detector records a console error raised by the page",
         "project": "chromium-no-auth"
       },
@@ -85,11 +85,11 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE from a failing test",
-        "url": "https://www.saucedemo.com/assets/index-DtWleVu9.js",
+        "url": "https://www.saucedemo.com/assets/index-D3OxT1jE.js",
         "test": "a failing test still records its observations (expected to fail, reported green)",
         "project": "chromium-no-auth"
       },
@@ -104,7 +104,7 @@
       "thirdParty": false,
       "count": 3,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "Sorting is broken! This error has been reported to Backtrace.",
@@ -125,7 +125,7 @@
       "thirdParty": false,
       "count": 3,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -147,7 +147,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -168,7 +168,7 @@
       "thirdParty": false,
       "count": 10,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -190,7 +190,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -209,9 +209,9 @@
       "signature": "failed-request:GET:https://www.saucedemo.com/inventory.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 49,
+      "count": 50,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -238,7 +238,7 @@
       "thirdParty": true,
       "count": 7,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "401 Unauthorized",
@@ -261,7 +261,7 @@
       "thirdParty": true,
       "count": 7,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "401 Unauthorized",
@@ -284,7 +284,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-11",
+      "lastSeen": "2026-09-14",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE uncaught failure",

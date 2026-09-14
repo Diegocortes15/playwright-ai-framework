@@ -1,14 +1,23 @@
 {
   "records": [
     {
-      "title": "footer Twitter link points to its Sauce Labs URL",
-      "acText": "The footer Twitter link's href is https://twitter.com/saucelabs.",
+      "title": "footer X link points to its Sauce Labs URL",
+      "acText": "WHEN standard_user opens the inventory page, the footer shall expose a social link whose href is exactly https://x.com/saucelabs.",
       "user": "standard_user",
       "tags": ["@standard"],
       "bucket": "Positive",
       "feature": "footer",
       "contextLabel": "standard_user",
-      "jira": [{ "key": "SW-2", "url": "https://diegocortes15.atlassian.net/browse/SW-2" }]
+      "jira": [
+        {
+          "key": "SW-2",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        },
+        {
+          "key": "SW-18",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-18"
+        }
+      ]
     },
     {
       "title": "footer Facebook link points to its Sauce Labs URL",
@@ -18,7 +27,12 @@
       "bucket": "Positive",
       "feature": "footer",
       "contextLabel": "standard_user",
-      "jira": [{ "key": "SW-2", "url": "https://diegocortes15.atlassian.net/browse/SW-2" }]
+      "jira": [
+        {
+          "key": "SW-2",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        }
+      ]
     },
     {
       "title": "footer LinkedIn link points to its Sauce Labs URL",
@@ -28,17 +42,42 @@
       "bucket": "Positive",
       "feature": "footer",
       "contextLabel": "standard_user",
-      "jira": [{ "key": "SW-2", "url": "https://diegocortes15.atlassian.net/browse/SW-2" }]
+      "jira": [
+        {
+          "key": "SW-2",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        }
+      ]
     },
     {
       "title": "footer shows the Sauce Labs copyright text",
-      "acText": "The footer shows '© 2026 Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy'.",
+      "acText": "The footer shows '\u00a9 2026 Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy'.",
       "user": "standard_user",
       "tags": ["@standard"],
       "bucket": "Positive",
       "feature": "footer",
       "contextLabel": "standard_user",
-      "jira": [{ "key": "SW-2", "url": "https://diegocortes15.atlassian.net/browse/SW-2" }]
+      "jira": [
+        {
+          "key": "SW-2",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        }
+      ]
+    },
+    {
+      "title": "footer X link shows the label X",
+      "acText": "WHEN standard_user opens the inventory page, the footer's X social link shall display the visible text \"X\".",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Positive",
+      "feature": "footer",
+      "contextLabel": "standard_user",
+      "jira": [
+        {
+          "key": "SW-18",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-18"
+        }
+      ]
     }
   ]
 }
