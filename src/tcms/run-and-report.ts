@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { recordRun } from './run-report';
+import { recordRun, reportQaseProblem } from './run-report';
 import { parseEngines } from '../utils/run-environment';
 
 // Usage (via tsx): run-and-report.ts <LABEL> [playwright args...]
@@ -39,7 +39,7 @@ async function main(): Promise<number> {
   try {
     await recordRun(label, parseEngines(process.env.RUN_ENGINES));
   } catch (err) {
-    console.error(`Qase run failed: ${err}`);
+    reportQaseProblem(String(err));
   }
 
   return exitCodeFor(run.status);

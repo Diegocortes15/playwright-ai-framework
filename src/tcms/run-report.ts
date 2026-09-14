@@ -123,21 +123,38 @@ const AMBER = '\x1b[38;5;214m'; // warning
 const RESET = '\x1b[0m';
 const color = (s: string, c: string): string => (process.stdout.isTTY ? `${c}${s}${RESET}` : s);
 
+// Tells the workflow that this run produced NO Qase record, and why, so the Slack step can
+// say so out loud.
+//
+// Silence was the old behaviour, and it hid a real problem: four consecutive manual runs
+// were rejected by Qase with `403 — You have reached a limit of active runs`, and the only
+// trace was a line in a log nobody opens. The Slack message simply omitted its Qase link,
+// which reads exactly like a run that was never meant to record one.
+//
+// GitHub Actions outputs are line-based, so the reason is flattened and capped; the full
+// text is always on stdout regardless.
+export function reportQaseProblem(reason: string): void {
+  const line = reason.replace(/\s+/g, ' ').trim().slice(0, 300);
+  console.log(color(`Qase not recorded: ${line}`, AMBER));
+  if (process.env.GITHUB_OUTPUT)
+    appendFileSync(process.env.GITHUB_OUTPUT, `qase_problem=${line}\n`);
+}
+
 export async function recordRun(label?: string, engines?: readonly Engine[]): Promise<void> {
   const cfg = qaseConfig();
   if (!cfg) {
-    console.log('TCMS off (QASE_API_TOKEN/QASE_PROJECT_CODE unset) — skipping Qase run.');
+    reportQaseProblem('TCMS is off — QASE_API_TOKEN / QASE_PROJECT_CODE are unset');
     return;
   }
   if (!existsSync('test-results/results.json')) {
-    console.log('No test-results/results.json — run the tests first, then `npm run tcms:run`.');
+    reportQaseProblem('no test-results/results.json — the run produced no results to record');
     return;
   }
   const report = JSON.parse(readFileSync('test-results/results.json', 'utf-8'));
   const map = loadMap('qase-map.json');
   const { results, skipped } = selectResults(report, map);
   if (results.length === 0) {
-    console.log('No matching Qase cases for this run. Run `npm run tcms:sync` to refresh the map.');
+    reportQaseProblem('no test matched a Qase case — the id map is stale, run `npm run tcms:sync`');
     if (skipped.length) console.log(color(`Not in Qase: ${skipped.join('; ')}`, AMBER));
     return;
   }

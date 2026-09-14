@@ -231,6 +231,7 @@ jobs:
           SUITE: ${{ needs.gate.outputs.suite }}
           BROWSER: ${{ needs.gate.outputs.browser }}
           QASE_RUN_URL: ${{ steps.run.outputs.qase_run_url }}
+          QASE_PROBLEM: ${{ steps.run.outputs.qase_problem }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           RUN_ID: ${{ github.run_id }}
           EVENT_NAME: ${{ github.event_name }}
@@ -276,6 +277,12 @@ jobs:
           [ -n "$ENV_LINE" ] && body="$body"$'\n'":performing-arts: $ENV_LINE"
           # Custom emoji outside the <url|label> so Slack renders them (emoji inside link text don't render).
           [ -n "$QASE_RUN_URL" ] && body="$body"$'\n'":qase: <$QASE_RUN_URL|Qase run>"
+          # A run that recorded nothing in Qase says so, with the reason. Omitting the link
+          # in silence reads exactly like a run that never meant to record one — which is how
+          # four consecutive runs rejected with `403 active-run limit reached` went unnoticed.
+          # The tests themselves are unaffected, so this is a warning beside the verdict and
+          # never part of it.
+          [ -n "$QASE_PROBLEM" ] && body="$body"$'\n'":warning: Qase not recorded — $QASE_PROBLEM"
           # Observations: a COUNT plus where to look. Dumping the contents here is how
           # a channel gets muted — the detail lives in the uploaded artifact (ADR-0021).
           if ls .observations/*.json >/dev/null 2>&1; then

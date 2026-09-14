@@ -160,8 +160,7 @@
       "note": "saucedemo is hosted on GitHub Pages with the spa-github-pages shim: the server 404s every deep link and the SPA renders it client-side. Intentional for this app; would be a real finding anywhere else.",
       "seenIn": [
         "logout"
-      ],
-      "absentSince": "2026-09-14"
+      ]
     },
     {
       "signature": "failed-request:GET:https://www.saucedemo.com/checkout-step-one.html:404",
@@ -204,14 +203,13 @@
       "note": "saucedemo is hosted on GitHub Pages with the spa-github-pages shim: the server 404s every deep link and the SPA renders it client-side. Intentional for this app; would be a real finding anywhere else.",
       "seenIn": [
         "logout"
-      ],
-      "absentSince": "2026-09-14"
+      ]
     },
     {
       "signature": "failed-request:GET:https://www.saucedemo.com/inventory.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 1,
+      "count": 50,
       "firstSeen": "2026-09-04",
       "lastSeen": "2026-09-14",
       "status": "ignored",
@@ -238,7 +236,7 @@
       "signature": "failed-request:POST:https://events.backtrace.io/api/summed-events/submit:401",
       "kind": "failed-request",
       "thirdParty": true,
-      "count": 1,
+      "count": 7,
       "firstSeen": "2026-09-05",
       "lastSeen": "2026-09-14",
       "status": "ignored",
@@ -247,7 +245,7 @@
         "url": "https://events.backtrace.io/api/summed-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "standard_user logs out from the menu and returns to the login page",
+        "test": "problem_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [
@@ -261,7 +259,7 @@
       "signature": "failed-request:POST:https://events.backtrace.io/api/unique-events/submit:401",
       "kind": "failed-request",
       "thirdParty": true,
-      "count": 1,
+      "count": 7,
       "firstSeen": "2026-09-05",
       "lastSeen": "2026-09-14",
       "status": "ignored",
@@ -270,7 +268,7 @@
         "url": "https://events.backtrace.io/api/unique-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "standard_user logs out from the menu and returns to the login page",
+        "test": "problem_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [
