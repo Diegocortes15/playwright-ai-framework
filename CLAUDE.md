@@ -143,5 +143,6 @@ Projects are **data-driven from `tests/users.ts` `AUTH_USERS`** (currently `['st
 - Import a Page from another Page (no cross-page imports in `src/pages/`)
 - Import a raw Locator into a test (tests use Pages and Data only)
 - Use XPath
+- Act on a finding instead of reporting it — a failing test, an unmet AC, a behaviour the docs claim and the app lacks. Diagnose it fully, show the readings that survive, and stop; the decision is the team's and usually becomes a ticket ([ADR-0030](docs/adr/0030-triage-is-a-human-decision.md), workflow in [`docs/triage.md`](docs/triage.md))
 - Add a per-user × per-browser matrix, or wire `firefox-problem` / `webkit-error` — cross-browser is standard-user-only and opt-in (ADR-0027, keeping ADR-0004's guardrail)
 - Publish a Playwright trace to an unauthenticated host (GitHub Pages, a public bucket) — a trace records response bodies and live session tokens, so it inherits the confidentiality of the app under test. Ship the artifact, which already inherits the repo's permissions
