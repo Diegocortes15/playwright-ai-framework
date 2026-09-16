@@ -214,3 +214,69 @@ test('a non-429 error is not retried', async () => {
   await expect(new QaseClient(cfg).archiveCase(1)).rejects.toThrow('401');
   expect(attempts).toBe(1);
 });
+
+// ---- Skipping the lookup for a case we already know ------------------------------------
+
+test('a known case id is updated directly, with no search', async () => {
+  const calls = stubFetch(() => ({ result: { id: 1 } }));
+
+  const id = await new QaseClient(cfg).upsertCase(3, baseCase, 88);
+
+  expect(id).toBe(88);
+  expect(calls).toHaveLength(1);
+  expect(calls[0].method).toBe('PATCH');
+  expect(calls[0].url).toBe('https://api.qase.io/v1/case/SAUCE/88');
+});
+
+// Answers 404 to the first call (the direct update), then behaves normally. The branch lives
+// here rather than in a test body (`playwright/no-conditional-in-test`).
+function stubMissingThenFound(): { url: string; method: string }[] {
+  const calls: { url: string; method: string }[] = [];
+  let first = true;
+  globalThis.fetch = (async (url: string, init: RequestInit = {}) => {
+    const method = init.method ?? 'GET';
+    calls.push({ url: String(url), method });
+    const gone = first;
+    first = false;
+    return gone
+      ? ({ ok: false, status: 404, text: async () => 'Case not found' } as Response)
+      : ({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { entities: [], id: 12 } }),
+        } as Response);
+  }) as typeof fetch;
+  return calls;
+}
+
+// The risk this covers: someone deletes or archives the case in Qase by hand. The map still
+// names an id that no longer exists. Without the fallback the sync would fail; with it, the
+// answer is the same one the search-only code gave.
+test('a stale id falls back to search-and-create instead of failing', async () => {
+  const calls = stubMissingThenFound();
+
+  const id = await new QaseClient(cfg).upsertCase(3, baseCase, 404404);
+
+  expect(id).toBe(12);
+  expect(calls.map((c) => c.method)).toEqual(['PATCH', 'GET', 'POST']);
+});
+
+// A 500 is not a vanished case. Falling back would hide a real outage behind a second call
+// and a created duplicate.
+test('a non-404 failure on the direct update is not swallowed', async () => {
+  globalThis.fetch = (async () =>
+    ({ ok: false, status: 500, text: async () => 'boom' }) as Response) as typeof fetch;
+
+  await expect(new QaseClient(cfg).upsertCase(3, baseCase, 88)).rejects.toThrow('500');
+});
+
+test('with no known id the behaviour is unchanged: search, then create', async () => {
+  const calls = stubFetch((c) =>
+    c.method === 'GET' ? { result: { entities: [] } } : { result: { id: 7 } },
+  );
+
+  const id = await new QaseClient(cfg).upsertCase(3, baseCase);
+
+  expect(id).toBe(7);
+  expect(calls.map((c) => c.method)).toEqual(['GET', 'POST']);
+});

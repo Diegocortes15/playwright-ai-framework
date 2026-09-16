@@ -74,7 +74,10 @@ export interface CaseResult {
 // The seam every TCMS backend implements. qase-client.ts is the first impl.
 export interface TcmsSeam {
   ensureSuitePath(path: string[]): Promise<number>; // create-as-needed → leaf suite id
-  upsertCase(suiteId: number, c: TcmsCase): Promise<number>; // find-or-create by (suite,title)
+  // `knownId` comes from the committed qase-map.json. When given, the case is updated
+  // directly and the find-by-title search is skipped — that search was 80 of the 182 calls a
+  // sync made. A stale id falls back to the search, so the result is identical either way.
+  upsertCase(suiteId: number, c: TcmsCase, knownId?: number): Promise<number>;
   recordResults(results: CaseResult[], meta: SyncMeta): Promise<number>; // create run + results → run id
   archiveCase(caseId: number): Promise<void>; // deprecate/archive a case whose test was removed
 }
