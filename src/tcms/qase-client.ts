@@ -17,17 +17,45 @@ interface IdResp {
 // The seam: the ONLY module that knows Qase's REST API. A future Xray/Zephyr/Kiwi
 // client implements the same TcmsSeam interface. Auth is the `Token:` header
 // (confirm against the token's curl example — see plan Task 9).
+// Qase allows 200 requests per minute and answers 429 with a `Retry-After` in seconds.
+// Waiting the header out is the documented remedy, so this retries rather than failing the
+// recording — a run whose results are lost to a burst is a run nobody can audit.
+const RATE_LIMITED = 429;
+const MAX_RETRIES = 3;
+// Qase answers 413 Payload Too Large above 200 results in one bulk request.
+const BULK_LIMIT = 200;
+
 export class QaseClient implements TcmsSeam {
-  constructor(private readonly cfg: QaseConfig) {}
+  // Suite ids are resolved by title+parent, and the same twenty paths repeat across eighty
+  // cases. Without this the sync spent 240 GETs re-answering 20 questions, which is most of
+  // a 200/minute budget spent on nothing.
+  private readonly suiteIds = new Map<string, number>();
+
+  constructor(
+    private readonly cfg: QaseConfig,
+    private readonly sleep: (ms: number) => Promise<void> = (ms) =>
+      new Promise((r) => setTimeout(r, ms)),
+  ) {}
 
   private async rpc<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${this.cfg.apiHost}${path}`, {
-      method,
-      headers: { Token: this.cfg.apiToken, 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`Qase ${method} ${path} → ${res.status} ${await res.text()}`);
-    return (await res.json()) as T;
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(`${this.cfg.apiHost}${path}`, {
+        method,
+        headers: { Token: this.cfg.apiToken, 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (res.ok) return (await res.json()) as T;
+
+      // Only 429 is worth repeating. A 401 or a 422 returns the same answer however long you
+      // wait, and retrying them turns a clear error into a slow one.
+      if (res.status !== RATE_LIMITED || attempt >= MAX_RETRIES) {
+        throw new Error(`Qase ${method} ${path} → ${res.status} ${await res.text()}`);
+      }
+      // Trust the server's own number when it gives one; its default is 60 seconds.
+      const after = Number(res.headers?.get?.('Retry-After')) || 60;
+      console.log(`Qase rate-limited — waiting ${after}s, then retrying ${method} ${path}`);
+      await this.sleep(after * 1000);
+    }
   }
 
   async ensureSuitePath(path: string[]): Promise<number> {
@@ -42,6 +70,16 @@ export class QaseClient implements TcmsSeam {
   }
 
   private async ensureSuite(title: string, parentId?: number): Promise<number> {
+    const key = `${parentId ?? 'root'}/${title}`;
+    const cached = this.suiteIds.get(key);
+    if (cached !== undefined) return cached;
+
+    const id = await this.lookUpOrCreateSuite(title, parentId);
+    this.suiteIds.set(key, id);
+    return id;
+  }
+
+  private async lookUpOrCreateSuite(title: string, parentId?: number): Promise<number> {
     const code = this.cfg.projectCode;
     // Title search is narrow at project scale; 100 is ample, so no pagination.
     const q = new URLSearchParams({ 'filters[search]': title, limit: '100' });
@@ -93,11 +131,16 @@ export class QaseClient implements TcmsSeam {
       is_autotest: true,
       ...(meta.description ? { description: meta.description } : {}),
     });
-    for (const r of results) {
-      await this.rpc('POST', `/result/${code}/${run.result.id}`, {
-        case_id: r.caseId,
-        status: r.status,
-        ...(r.comment === undefined ? {} : { comment: r.comment }),
+    // One call per result made 246 requests for an `all` regression and tripped the
+    // 200/minute limit on its own. The bulk endpoint takes up to 200 at a time, so the same
+    // run becomes three requests.
+    for (let i = 0; i < results.length; i += BULK_LIMIT) {
+      await this.rpc('POST', `/result/${code}/${run.result.id}/bulk`, {
+        results: results.slice(i, i + BULK_LIMIT).map((r) => ({
+          case_id: r.caseId,
+          status: r.status,
+          ...(r.comment === undefined ? {} : { comment: r.comment }),
+        })),
       });
     }
     return run.result.id;

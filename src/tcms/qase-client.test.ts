@@ -93,8 +93,8 @@ test('recordResults creates a run then posts each result with a valid status', a
   });
   const run = calls.find((c) => c.url.endsWith('/run/SAUCE'))!;
   expect(run.body!.is_autotest).toBe(true);
-  const result = calls.find((c) => c.url === 'https://api.qase.io/v1/result/SAUCE/5')!;
-  expect(result.body).toEqual({ case_id: 42, status: 'passed' });
+  const result = calls.find((c) => c.url === 'https://api.qase.io/v1/result/SAUCE/5/bulk')!;
+  expect(result.body).toEqual({ results: [{ case_id: 42, status: 'passed' }] });
 });
 
 test('upsertCase marks the case automated', async () => {
@@ -121,6 +121,96 @@ test('recordResults forwards a per-result comment when present', async () => {
     { jiraKey: 'SW-1', sourceUrl: 'u', runTitle: 'r' },
   );
   expect(runId).toBe(9);
-  const result = calls.find((c) => c.url === 'https://api.qase.io/v1/result/SAUCE/9')!;
-  expect(result.body).toEqual({ case_id: 7, status: 'failed', comment: 'failed on: problem' });
+  const result = calls.find((c) => c.url === 'https://api.qase.io/v1/result/SAUCE/9/bulk')!;
+  expect(result.body).toEqual({
+    results: [{ case_id: 7, status: 'failed', comment: 'failed on: problem' }],
+  });
+});
+
+// ---- Rate limiting (Qase allows 200 requests/minute) ------------------------------------
+
+// The defect these guard: one request per result made 246 calls for an `all` regression and
+// tripped the limit on its own, and the client had no retry, so the first rejection lost the
+// whole recording.
+
+test('results go out in bulk, not one request each', async () => {
+  const calls = stubFetch((c) =>
+    c.url.includes('/run/') ? { result: { id: 5 } } : { result: {} },
+  );
+  const results = Array.from({ length: 150 }, (_, i) => ({ caseId: i, status: 'passed' as const }));
+
+  await new QaseClient(cfg).recordResults(results, { jiraKey: '', sourceUrl: '', runTitle: 'r' });
+
+  // One to open the run, one to post all 150 results. Not 151.
+  expect(calls).toHaveLength(2);
+  expect(calls[1].body!.results as unknown[]).toHaveLength(150);
+});
+
+test('more than 200 results are split, because Qase rejects a larger payload', async () => {
+  const calls = stubFetch((c) =>
+    c.url.includes('/run/') ? { result: { id: 5 } } : { result: {} },
+  );
+  const results = Array.from({ length: 245 }, (_, i) => ({ caseId: i, status: 'passed' as const }));
+
+  await new QaseClient(cfg).recordResults(results, { jiraKey: '', sourceUrl: '', runTitle: 'r' });
+
+  const chunks = calls.filter((c) => c.url.endsWith('/bulk'));
+  expect(chunks.map((c) => (c.body!.results as unknown[]).length)).toEqual([200, 45]);
+});
+
+test('a suite is looked up once, however many cases share its path', async () => {
+  const calls = stubFetch((c) =>
+    c.method === 'GET' ? { result: { entities: [] } } : { result: { id: 1 } },
+  );
+  const client = new QaseClient(cfg);
+
+  await client.ensureSuitePath(['login', 'no auth', 'Positive']);
+  await client.ensureSuitePath(['login', 'no auth', 'Positive']);
+  await client.ensureSuitePath(['login', 'no auth', 'Negative']);
+
+  // Three levels resolved for the first path, one more for the differing leaf. Without the
+  // cache this is nine lookups, and eighty cases across twenty paths cost 240.
+  expect(calls.filter((c) => c.method === 'GET')).toHaveLength(4);
+});
+
+// Answers 429 once with the given Retry-After, then succeeds. The branch lives here rather
+// than inside a test body (`playwright/no-conditional-in-test`).
+function stubRateLimitedOnce(retryAfter: string | null): void {
+  let first = true;
+  globalThis.fetch = (async () => {
+    const rejected = first;
+    first = false;
+    return rejected
+      ? ({
+          ok: false,
+          status: 429,
+          headers: { get: (h: string) => (h === 'Retry-After' ? retryAfter : null) },
+          text: async () => 'API rate limit exceeded.',
+        } as unknown as Response)
+      : ({ ok: true, status: 200, json: async () => ({ result: { id: 3 } }) } as Response);
+  }) as typeof fetch;
+}
+
+test('a 429 is waited out and retried, using the server Retry-After', async () => {
+  const slept: number[] = [];
+  stubRateLimitedOnce('7');
+
+  const client = new QaseClient(cfg, async (ms) => {
+    slept.push(ms);
+  });
+  expect(await client.archiveCase(1).then(() => 'ok')).toBe('ok');
+  expect(slept).toEqual([7000]);
+});
+
+// A 401 answers the same however long you wait. Retrying it turns a clear error into a slow
+// one, and hides the real cause behind a timeout.
+test('a non-429 error is not retried', async () => {
+  let attempts = 0;
+  globalThis.fetch = (async () => {
+    attempts++;
+    return { ok: false, status: 401, text: async () => 'Unauthenticated.' } as Response;
+  }) as typeof fetch;
+
+  await expect(new QaseClient(cfg).archiveCase(1)).rejects.toThrow('401');
+  expect(attempts).toBe(1);
 });
