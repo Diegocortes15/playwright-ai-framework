@@ -20,7 +20,20 @@ interface IdResp {
 // Qase allows 200 requests per minute and answers 429 with a `Retry-After` in seconds.
 // Waiting the header out is the documented remedy, so this retries rather than failing the
 // recording — a run whose results are lost to a burst is a run nobody can audit.
+// Carries the status so a caller can tell a vanished case (404) from a real failure,
+// instead of matching on the text of an error message.
+export class QaseHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'QaseHttpError';
+  }
+}
+
 const RATE_LIMITED = 429;
+const NOT_FOUND = 404;
 const MAX_RETRIES = 3;
 // Qase answers 413 Payload Too Large above 200 results in one bulk request.
 const BULK_LIMIT = 200;
@@ -49,7 +62,10 @@ export class QaseClient implements TcmsSeam {
       // Only 429 is worth repeating. A 401 or a 422 returns the same answer however long you
       // wait, and retrying them turns a clear error into a slow one.
       if (res.status !== RATE_LIMITED || attempt >= MAX_RETRIES) {
-        throw new Error(`Qase ${method} ${path} → ${res.status} ${await res.text()}`);
+        throw new QaseHttpError(
+          res.status,
+          `Qase ${method} ${path} → ${res.status} ${await res.text()}`,
+        );
       }
       // Trust the server's own number when it gives one; its default is 60 seconds.
       const after = Number(res.headers?.get?.('Retry-After')) || 60;
@@ -95,12 +111,48 @@ export class QaseClient implements TcmsSeam {
     return created.result.id;
   }
 
-  async upsertCase(suiteId: number, c: TcmsCase): Promise<number> {
+  async upsertCase(suiteId: number, c: TcmsCase, knownId?: number): Promise<number> {
+    const body = this.caseBody(suiteId, c);
+
+    // The committed qase-map.json already says which case this test is. Updating it directly
+    // skips the find-by-title search, which was 80 of the 182 calls a full sync made.
+    //
+    // A stale id is handled rather than assumed away: if the case was deleted or archived in
+    // Qase by hand, the update 404s and this falls through to the search-and-create path
+    // below — the same answer the old code gave, one extra call later, and only in that case.
+    if (knownId !== undefined) {
+      try {
+        await this.rpc('PATCH', `/case/${this.cfg.projectCode}/${knownId}`, body);
+        return knownId;
+      } catch (err) {
+        if (!(err instanceof QaseHttpError) || err.status !== NOT_FOUND) throw err;
+        console.log(`Qase case ${knownId} is gone — falling back to search for "${c.title}"`);
+      }
+    }
+    return this.findOrCreateCase(suiteId, c, body);
+  }
+
+  private async findOrCreateCase(
+    suiteId: number,
+    c: TcmsCase,
+    body: Record<string, unknown>,
+  ): Promise<number> {
     const code = this.cfg.projectCode;
     // Title search is narrow at project scale; 100 is ample, so no pagination.
     const q = new URLSearchParams({ 'filters[search]': c.title, limit: '100' });
     const found = await this.rpc<ListResp>('GET', `/case/${code}?${q}`);
-    const body = {
+    // suiteId always comes from ensureSuitePath (> 0), so a raw === on suite_id is safe here.
+    const match = found.result.entities.find((x) => x.title === c.title && x.suite_id === suiteId);
+    if (match) {
+      await this.rpc('PATCH', `/case/${code}/${match.id}`, body);
+      return match.id;
+    }
+    const created = await this.rpc<IdResp>('POST', `/case/${code}`, body);
+    return created.result.id;
+  }
+
+  private caseBody(suiteId: number, c: TcmsCase): Record<string, unknown> {
+    return {
       title: c.title,
       suite_id: suiteId,
       description: c.description,
@@ -113,14 +165,6 @@ export class QaseClient implements TcmsSeam {
         expected_result: s.expected,
       })),
     };
-    // suiteId always comes from ensureSuitePath (> 0), so a raw === on suite_id is safe here.
-    const match = found.result.entities.find((x) => x.title === c.title && x.suite_id === suiteId);
-    if (match) {
-      await this.rpc('PATCH', `/case/${code}/${match.id}`, body);
-      return match.id;
-    }
-    const created = await this.rpc<IdResp>('POST', `/case/${code}`, body);
-    return created.result.id;
   }
 
   async recordResults(results: CaseResult[], meta: SyncMeta): Promise<number> {

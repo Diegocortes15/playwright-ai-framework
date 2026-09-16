@@ -42,7 +42,10 @@ export async function runSuiteSync(
     }
     const c = mapToCase(record, hit.steps, hit.status);
     const suiteId = await seam.ensureSuitePath(c.suitePath);
-    const caseId = await seam.upsertCase(suiteId, c);
+    // The old map already answers "which case is this test", so the seam can update it
+    // directly instead of searching for it by title. Undefined for a record that has never
+    // synced, which then takes the search path as before.
+    const caseId = await seam.upsertCase(suiteId, c, input.oldMap[key]);
     outcome.newMap[key] = caseId;
     outcome.synced.push(key);
   }
