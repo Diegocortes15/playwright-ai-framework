@@ -68,17 +68,19 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
       await cartPage.checkout();
 
       await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
-      expect(await checkoutInfoPage.getTitle()).toBe('Checkout: Your Information');
+      await expect.poll(() => checkoutInfoPage.getTitle()).toBe('Checkout: Your Information');
     });
 
     // AC 8: the three mandatory inputs render their placeholder text.
     test('mandatory fields show their placeholder text', async ({ checkoutInfoPage }) => {
       await checkoutInfoPage.goto();
-      expect(await checkoutInfoPage.getPlaceholders()).toEqual({
-        firstName: 'First Name',
-        lastName: 'Last Name',
-        postalCode: 'Zip/Postal Code',
-      });
+      await expect
+        .poll(() => checkoutInfoPage.getPlaceholders())
+        .toEqual({
+          firstName: 'First Name',
+          lastName: 'Last Name',
+          postalCode: 'Zip/Postal Code',
+        });
     });
 
     // AC 9: a complete, valid information form routes to Checkout: Overview.
@@ -99,7 +101,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
         await checkoutInfoPage.clickContinue();
 
         await expect(page).toHaveURL(/\/checkout-step-two\.html$/);
-        expect(await checkoutOverviewPage.getTitle()).toBe('Checkout: Overview');
+        await expect.poll(() => checkoutOverviewPage.getTitle()).toBe('Checkout: Overview');
       },
     );
 
@@ -131,7 +133,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
         await checkoutInfoPage[via]();
 
         await expect(page).toHaveURL(/\/cart\.html$/);
-        expect(await cartPage.getTitle()).toBe('Your Cart');
+        await expect.poll(() => cartPage.getTitle()).toBe('Your Cart');
       });
     }
 
@@ -145,16 +147,16 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     }) => {
       await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
 
-      expect(await checkoutOverviewPage.getProductNames()).toEqual(
-        CART_PRODUCTS.map((p) => p.name),
-      );
-      expect(await checkoutOverviewPage.getProductQuantities()).toEqual(['1', '1', '1']);
-      expect(await checkoutOverviewPage.getProductDescriptions()).toEqual(
-        CART_PRODUCTS.map((p) => p.description),
-      );
-      expect(await checkoutOverviewPage.getProductPrices()).toEqual(
-        CART_PRODUCTS.map((p) => p.price),
-      );
+      await expect
+        .poll(() => checkoutOverviewPage.getProductNames())
+        .toEqual(CART_PRODUCTS.map((p) => p.name));
+      await expect.poll(() => checkoutOverviewPage.getProductQuantities()).toEqual(['1', '1', '1']);
+      await expect
+        .poll(() => checkoutOverviewPage.getProductDescriptions())
+        .toEqual(CART_PRODUCTS.map((p) => p.description));
+      await expect
+        .poll(() => checkoutOverviewPage.getProductPrices())
+        .toEqual(CART_PRODUCTS.map((p) => p.price));
     });
 
     // AC 2 + AC 3 (SW-9): the payment and shipping information sections show their values.
@@ -166,8 +168,10 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     }) => {
       await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
 
-      expect(await checkoutOverviewPage.getPaymentInfo()).toBe('SauceCard #31337');
-      expect(await checkoutOverviewPage.getShippingInfo()).toBe('Free Pony Express Delivery!');
+      await expect.poll(() => checkoutOverviewPage.getPaymentInfo()).toBe('SauceCard #31337');
+      await expect
+        .poll(() => checkoutOverviewPage.getShippingInfo())
+        .toBe('Free Pony Express Delivery!');
     });
 
     // AC 4 + AC 5 + AC 6 (SW-9): the price summary shows the item total, the 8% tax,
@@ -181,9 +185,9 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     }) => {
       await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
 
-      expect(await checkoutOverviewPage.getItemTotalText()).toBe('Item total: $55.97');
-      expect(await checkoutOverviewPage.getTaxText()).toBe('Tax: $4.48');
-      expect(await checkoutOverviewPage.getTotalText()).toBe('Total: $60.45');
+      await expect.poll(() => checkoutOverviewPage.getItemTotalText()).toBe('Item total: $55.97');
+      await expect.poll(() => checkoutOverviewPage.getTaxText()).toBe('Tax: $4.48');
+      await expect.poll(() => checkoutOverviewPage.getTotalText()).toBe('Total: $60.45');
     });
 
     // AC 8 (SW-9): the header cart icon is displayed and returns to the Cart page.
@@ -200,7 +204,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
       await checkoutOverviewPage.openCart();
 
       await expect(page).toHaveURL(/\/cart\.html$/);
-      expect(await cartPage.getTitle()).toBe('Your Cart');
+      await expect.poll(() => cartPage.getTitle()).toBe('Your Cart');
     });
 
     // AC 10–13 (SW-9): Finish is visible and completes the order — landing on
@@ -222,13 +226,17 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
         await checkoutOverviewPage.finish();
 
         await expect(page).toHaveURL(/\/checkout-complete\.html$/);
-        expect(await checkoutCompletePage.getTitle()).toBe('Checkout: Complete!');
-        expect(await checkoutCompletePage.getCompleteHeader()).toBe('Thank you for your order!');
+        await expect.poll(() => checkoutCompletePage.getTitle()).toBe('Checkout: Complete!');
+        await expect
+          .poll(() => checkoutCompletePage.getCompleteHeader())
+          .toBe('Thank you for your order!');
         // Live copy differs slightly from SW-9's paraphrase ("dispatched, and will
         // arrive just as fast…") — the app is the source of truth for exact strings.
-        expect(await checkoutCompletePage.getCompleteText()).toBe(
-          'Your order has been dispatched, and will arrive just as fast as the pony can get there!',
-        );
+        await expect
+          .poll(() => checkoutCompletePage.getCompleteText())
+          .toBe(
+            'Your order has been dispatched, and will arrive just as fast as the pony can get there!',
+          );
         await expect(checkoutCompletePage.backHomeButton).toBeVisible();
       },
     );
@@ -321,11 +329,13 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
 
       await cartPage.checkout();
       await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
-      expect(await checkoutInfoPage.getEnteredValues()).toEqual({
-        firstName: '',
-        lastName: '',
-        postalCode: '',
-      });
+      await expect
+        .poll(() => checkoutInfoPage.getEnteredValues())
+        .toEqual({
+          firstName: '',
+          lastName: '',
+          postalCode: '',
+        });
     });
 
     // AC 6 (SW-8): Cancel bypasses validation — an empty form returns to the Cart
@@ -345,7 +355,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
       await checkoutInfoPage.cancel();
 
       await expect(page).toHaveURL(/\/cart\.html$/);
-      expect(await cartPage.getTitle()).toBe('Your Cart');
+      await expect.poll(() => cartPage.getTitle()).toBe('Your Cart');
     });
 
     // AC 9 (SW-9): Cancel on the overview returns to the inventory page and leaves
@@ -362,7 +372,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
       await checkoutOverviewPage.cancel();
 
       await expect(page).toHaveURL(/\/inventory\.html$/);
-      expect(await inventoryPage.getCartBadgeCount()).toBe(3);
+      await expect.poll(() => inventoryPage.getCartBadgeCount()).toBe(3);
     });
 
     // AC 14 (SW-9): after finishing, Back Home returns to the inventory page and
@@ -382,7 +392,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
       await checkoutCompletePage.backHome();
 
       await expect(page).toHaveURL(/\/inventory\.html$/);
-      expect(await inventoryPage.getCartBadgeCount()).toBe(0);
+      await expect.poll(() => inventoryPage.getCartBadgeCount()).toBe(0);
     });
   });
 });

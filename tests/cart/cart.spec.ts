@@ -50,11 +50,11 @@ test.describe('cart — standard_user', { tag: '@standard' }, () => {
       await inventoryPage.addToCart(BACKPACK);
       await inventoryPage.openCart();
 
-      expect(await cartPage.getItemNames()).toContain(BACKPACK);
-      expect(await cartPage.getItemQuantity(BACKPACK)).toBe('1');
-      expect(await cartPage.getItemDescription(BACKPACK)).toBe(backpack.description);
-      expect(await cartPage.getItemPrice(BACKPACK)).toBe(backpack.price);
-      expect(await cartPage.hasRemoveButton(BACKPACK)).toBe(true);
+      await expect.poll(() => cartPage.getItemNames()).toContain(BACKPACK);
+      await expect.poll(() => cartPage.getItemQuantity(BACKPACK)).toBe('1');
+      await expect.poll(() => cartPage.getItemDescription(BACKPACK)).toBe(backpack.description);
+      await expect.poll(() => cartPage.getItemPrice(BACKPACK)).toBe(backpack.price);
+      await expect.poll(() => cartPage.hasRemoveButton(BACKPACK)).toBe(true);
     });
 
     // AC 5
