@@ -1,7 +1,7 @@
 # 0031 — Verification scope is resolved by one script, and it fails safe (supersedes ADR-0010's mitigation)
 
 **Date:** 2026-09-14
-**Status:** Accepted. Supersedes [ADR-0010](0010-from-issue-augment-mode.md) on its verification mitigation only; augment mode itself and everything else in that record stand.
+**Status:** Superseded by [ADR-0032](0032-pr-runs-smoke-plus-changed-specs.md), which deletes the script this record is built around: file-granular selection bottomed out at 87% of the suite because one Page Object is named by almost every spec. The hole it identified — a pull request running zero tests — stays closed, by an unconditional smoke tier rather than a computed one. Supersedes [ADR-0010](0010-from-issue-augment-mode.md) on its verification mitigation only; augment mode itself and everything else in that record stand.
 **Confidence:** High. The hole is not inferred — a pull request that ran zero tests and reported success is in this repository's history, and the replacement was executed against eight change shapes before this was written.
 **Review by:** — (no shelf life; the trigger below is an event)
 **Enforced by:** `scripts/check-adr-invariants.mjs` — fails if the pull-request test step in `.github/workflows/test.yml` stops calling `scripts/affected-specs.sh`. Hand-rolling the diff again is exactly how the hole was introduced, and it is a small, plausible edit that no reviewer would flag.

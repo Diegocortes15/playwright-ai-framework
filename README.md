@@ -234,25 +234,24 @@ At merge, CI creates/updates/archives Qase **cases** (suite tree `feature › co
 <details>
 <summary><strong>npm scripts</strong></summary>
 
-| Script                                           | What it does                                                    |
-| ------------------------------------------------ | --------------------------------------------------------------- |
-| `npm test`                                       | Full matrix across all data-driven projects                     |
-| `npm run test:standard`                          | Only `chromium-standard` (fast local iteration)                 |
-| `npm run test:smoke` / `test:regression`         | `@smoke`-tagged tests / the full suite (run-only, no TCMS)      |
-| `npm run test:debug` / `test:headed` / `test:ui` | Standard project under Inspector / headed / UI mode             |
-| `npm run test:unit`                              | Browserless unit tests for the TCMS + observation modules       |
-| `npm run test:firefox` / `test:webkit`           | The standard user on another engine (opt-in, ADR-0027)          |
-| `npm run test:cross`                             | Both engines at once; add `-- --grep "@smoke"` for a scope      |
-| `npm run report` / `observations`                | Open the HTML report / render the observations digest           |
-| `npm run codegen`                                | Playwright codegen                                              |
-| `npm run typecheck`                              | `tsc --noEmit` (strict)                                         |
-| `npm run lint` / `lint:fix`                      | ESLint (`--max-warnings 0`) / with autofix                      |
-| `npm run lint:docs` / `lint:adr`                 | Documented commands actually run / config agrees with ADRs      |
-| `scripts/affected-specs.sh [base]`               | Which specs a change reaches, or `ALL` when it cannot be scoped |
-| `npm run format` / `format:check`                | Prettier write / check                                          |
-| `npm run suite -- <suite> <browser>`             | Run smoke/regression on chromium, firefox, webkit or all        |
-| `npm run qase:smoke` / `qase:regression`         | Run a scope **and** record a labeled Qase run                   |
-| `npm run tcms:sync` / `tcms:run`                 | Sync the Qase catalog / record an ad-hoc Qase run               |
+| Script                                           | What it does                                               |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| `npm test`                                       | Full matrix across all data-driven projects                |
+| `npm run test:standard`                          | Only `chromium-standard` (fast local iteration)            |
+| `npm run test:smoke` / `test:regression`         | `@smoke`-tagged tests / the full suite (run-only, no TCMS) |
+| `npm run test:debug` / `test:headed` / `test:ui` | Standard project under Inspector / headed / UI mode        |
+| `npm run test:unit`                              | Browserless unit tests for the TCMS + observation modules  |
+| `npm run test:firefox` / `test:webkit`           | The standard user on another engine (opt-in, ADR-0027)     |
+| `npm run test:cross`                             | Both engines at once; add `-- --grep "@smoke"` for a scope |
+| `npm run report` / `observations`                | Open the HTML report / render the observations digest      |
+| `npm run codegen`                                | Playwright codegen                                         |
+| `npm run typecheck`                              | `tsc --noEmit` (strict)                                    |
+| `npm run lint` / `lint:fix`                      | ESLint (`--max-warnings 0`) / with autofix                 |
+| `npm run lint:docs` / `lint:adr`                 | Documented commands actually run / config agrees with ADRs |
+| `npm run format` / `format:check`                | Prettier write / check                                     |
+| `npm run suite -- <suite> <browser>`             | Run smoke/regression on chromium, firefox, webkit or all   |
+| `npm run qase:smoke` / `qase:regression`         | Run a scope **and** record a labeled Qase run              |
+| `npm run tcms:sync` / `tcms:run`                 | Sync the Qase catalog / record an ad-hoc Qase run          |
 
 </details>
 

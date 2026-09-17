@@ -90,38 +90,36 @@ jobs:
       # drags in the whole suite — which is exactly the scaling pain we're avoiding.
       # Changing a shared Page Object therefore won't re-run its OTHER dependents here;
       # the full suite on merge (below) is the integration gate that catches that.
-      # Runs the specs a change actually reaches, resolved by scripts/affected-specs.sh so
-      # CI and a local /from-issue run cannot disagree about what "related tests" means.
+      # PR tier: the smoke set plus whatever specs this PR changed. Deliberately NOT a
+      # computed "affected" set — see ADR-0032. Smoke is 8 tests and ~6s, selected by
+      # user-visible risk (smoke-policy.md), and the broad net lives at merge below.
       #
-      # The rule this replaces looked only at changed `.spec.ts` files and exited 0 when it
-      # found none, so a pull request touching only a Page Object ran ZERO tests and
-      # reported success. PR #94 — the fix that took `main` out of a red state — did exactly
-      # that: it changed src/pages/InventoryPage.ts, nothing under tests/, and passed having
-      # run nothing. The resolver answers ALL whenever it cannot map a change (ADR-0031).
-      - name: Run affected specs (pull request)
+      # Smoke runs FIRST so a critical-path regression stops the step before anything else,
+      # and so the HTML report left behind belongs to whichever run failed.
+      - name: Run smoke (pull request)
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          SAUCEDEMO_PASSWORD: ${{ secrets.SAUCEDEMO_PASSWORD }}
+          CI: 'true'
+        run: npx playwright test --grep "@smoke"
+
+      - name: Run the specs this PR changed (pull request)
         if: ${{ github.event_name == 'pull_request' }}
         env:
           SAUCEDEMO_PASSWORD: ${{ secrets.SAUCEDEMO_PASSWORD }}
           CI: 'true'
         run: |
-          affected=$(scripts/affected-specs.sh "${{ github.event.pull_request.base.sha }}")
-          if [ -z "$affected" ]; then
-            echo "Nothing under test changed — no specs to run."
+          base="${{ github.event.pull_request.base.sha }}"
+          changed=$(git diff --name-only --diff-filter=AMR "$base"...HEAD -- 'tests/' | grep '\.spec\.ts$' || true)
+          if [ -z "$changed" ]; then
+            echo "No spec files added or modified — smoke above is the whole PR tier."
             exit 0
           fi
-          if [ "$affected" = "ALL" ]; then
-            echo "Change reaches shared code — running the full suite."
-            npm test
-          else
-            echo "Affected specs:"
-            echo "$affected"
-            # shellcheck disable=SC2086 # deliberate word-splitting into separate paths
-            npx playwright test $affected
-          fi
+          echo "Changed specs:"
+          echo "$changed"
+          # shellcheck disable=SC2086 # deliberate word-splitting into separate paths
+          npx playwright test $changed
 
-      # On merge (push): run the full suite so the Qase catalog sync below has every
-      # test's steps/status. (A lighter merge + a separate scheduled full regression
-      # is a planned follow-up.)
       - name: Run full suite (merge)
         if: ${{ github.event_name == 'push' }}
         env:

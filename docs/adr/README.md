@@ -54,11 +54,11 @@ Records written before 2026-09-07 predate `Confidence` and `Review by`. **They a
 
 |                                   | Count  |
 | --------------------------------- | ------ |
-| Total records                     | **31** |
-| Superseding / scoping / extending | 12     |
+| Total records                     | **32** |
+| Superseding / scoping / extending | 13     |
 | **Originating decisions**         | **19** |
 
-Nineteen is inside the range, and one short of leaving it; thirty-one is not. Keep the table current when you add one — the point of writing the number down is that the next person sees it before adding the twenty-eighth, which is exactly what nobody could do before this file existed. ADR-0027 was the twenty-seventh and ADR-0028 the twenty-eighth; both moved the superseding count rather than the originating one. 0027 replaced a record that had been `Accepted` and false for four months, and 0028 records that ADR-0013's `allowed-tools` guard does not reach a shell script. ADR-0029 is the twenty-ninth, and it exists because 0027's own `CI is unchanged and stays chromium` had in turn gone false — the same failure, one record later, which is the argument for keeping this table honest rather than the argument for a smaller number. ADR-0030 is the thirtieth and the **nineteenth originating** one, which is the first time this table has been worth consulting before writing: it rejects Playwright's own healer agent, so the next originating decision should be weighed against retiring an earlier one rather than added on top.
+Nineteen is inside the range, and one short of leaving it; thirty-two is not. Keep the table current when you add one — the point of writing the number down is that the next person sees it before adding the twenty-eighth, which is exactly what nobody could do before this file existed. ADR-0027 was the twenty-seventh and ADR-0028 the twenty-eighth; both moved the superseding count rather than the originating one. 0027 replaced a record that had been `Accepted` and false for four months, and 0028 records that ADR-0013's `allowed-tools` guard does not reach a shell script. ADR-0029 is the twenty-ninth, and it exists because 0027's own `CI is unchanged and stays chromium` had in turn gone false — the same failure, one record later, which is the argument for keeping this table honest rather than the argument for a smaller number. ADR-0030 is the thirtieth and the **nineteenth originating** one, which is the first time this table has been worth consulting before writing: it rejects Playwright's own healer agent, so the next originating decision should be weighed against retiring an earlier one rather than added on top.
 
 ## Index
 
@@ -95,6 +95,7 @@ Nineteen is inside the range, and one short of leaving it; thirty-one is not. Ke
 | 0029 | Cross-browser is reachable in CI, on demand only              | **supersedes 0027**    |
 | 0030 | A finding is reported, never acted on                         |                        |
 | 0031 | Verification scope is resolved by one script, and fails safe  | **supersedes 0010**    |
+| 0032 | A PR runs smoke plus its changed specs                        | **supersedes 0031**    |
 
 ---
 
