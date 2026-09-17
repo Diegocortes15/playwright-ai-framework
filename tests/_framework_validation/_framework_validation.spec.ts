@@ -82,7 +82,7 @@ test.describe('framework validation — observation detectors', { tag: '@no-auth
     expect(dialog?.dialogType).toBe('alert');
     expect(dialog?.message).toContain('Sorting is broken');
     // The fixture dismissed it, so the page is still usable afterwards.
-    expect(await inventoryPage.getTitle()).toBe('Products');
+    await expect.poll(() => inventoryPage.getTitle()).toBe('Products');
   });
 
   // `test.fail()` means "this is EXPECTED to fail" — Playwright reports it green when it

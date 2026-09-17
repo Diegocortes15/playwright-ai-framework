@@ -94,6 +94,30 @@ export default [
     // ADR-0003: specs read data through @data/fixtures, never JSON off disk.
     files: ['tests/**/*.spec.ts'],
     rules: {
+      // Scoped to specs on purpose: a unit test under src/ has no DOM to re-read, so polling
+      // there would be noise.
+      'no-restricted-syntax': [
+        'error',
+        {
+          // `expect(await page.getX()).toBe(…)` takes ONE snapshot and compares it once.
+          // Playwright's auto-waiting is gone — the property that lets this repo ban
+          // waitForTimeout without consequence — and it has bitten us: the comment in
+          // InventoryPage.goto() documents a test that failed one run in five on WebKit and
+          // passed alone every time.
+          //
+          // `await expect.poll(() => page.getX()).toBe(…)` retries, and keeps ADR-0001 rule #8
+          // intact: the query still returns data, never a Locator.
+          //
+          // playwright/prefer-web-first-assertions does NOT catch this. It only recognises
+          // `expect(await locator.textContent())`; a Page Object method looks like any other
+          // call to it, so 49 of these passed the gate clean.
+          selector: "CallExpression[callee.name='expect'] > AwaitExpression:first-child",
+          message:
+            'Use `await expect.poll(() => …)` instead of `expect(await …)`: awaiting first takes ' +
+            'a single DOM snapshot and loses auto-waiting. If the assertion is MEANT to fail at ' +
+            'once (a test.fail() case), disable this rule on the line and say why.',
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {

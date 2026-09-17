@@ -29,7 +29,7 @@ test.describe('burger_menu — standard_user', { tag: '@standard' }, () => {
       await inventoryPage.header.burgerMenu.open();
       await inventoryPage.header.burgerMenu.selectAllItems();
       await expect(page).toHaveURL(/\/inventory\.html$/);
-      expect(await inventoryPage.getTitle()).toBe('Products');
+      await expect.poll(() => inventoryPage.getTitle()).toBe('Products');
     });
 
     // AC 3 — "About" navigates the SAME tab to saucelabs.com. This is a real
@@ -54,7 +54,7 @@ test.describe('burger_menu — standard_user', { tag: '@standard' }, () => {
       await inventoryPage.goto();
       await inventoryPage.addToCart(backpack);
       await inventoryPage.addToCart(bikeLight);
-      expect(await inventoryPage.getCartBadgeCount()).toBe(2);
+      await expect.poll(() => inventoryPage.getCartBadgeCount()).toBe(2);
 
       await inventoryPage.header.burgerMenu.open();
       await inventoryPage.header.burgerMenu.resetAppState();
@@ -62,12 +62,12 @@ test.describe('burger_menu — standard_user', { tag: '@standard' }, () => {
       // calls this out explicitly), so refresh before re-checking state.
       await inventoryPage.goto();
 
-      expect(await inventoryPage.getCartBadgeCount()).toBe(0);
-      expect(await inventoryPage.getProductButtonLabel(backpack)).toBe('Add to cart');
-      expect(await inventoryPage.getProductButtonLabel(bikeLight)).toBe('Add to cart');
+      await expect.poll(() => inventoryPage.getCartBadgeCount()).toBe(0);
+      await expect.poll(() => inventoryPage.getProductButtonLabel(backpack)).toBe('Add to cart');
+      await expect.poll(() => inventoryPage.getProductButtonLabel(bikeLight)).toBe('Add to cart');
 
       await cartPage.goto();
-      expect(await cartPage.getItemCount()).toBe(0);
+      await expect.poll(() => cartPage.getItemCount()).toBe(0);
     });
   });
 

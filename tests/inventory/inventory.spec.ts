@@ -55,6 +55,10 @@ test.describe('inventory — problem_user', { tag: '@problem' }, () => {
         await inventoryPage.sortBy(value);
         // The control itself is asserted separately from the ordering, so a failure
         // says whether the dropdown ignored the click or accepted it and did nothing.
+        // NOT expect.poll, deliberately. This test is `test.fail()` — the assertion is
+        // MEANT to fail, and polling would retry it until the expect timeout instead of
+        // failing at once, costing five seconds per run to arrive at the same answer.
+        // eslint-disable-next-line no-restricted-syntax -- see above: an expected failure
         expect(await inventoryPage.getActiveSortLabel()).toBe(label);
 
         const displayed = await inventoryPage[read]();
@@ -98,14 +102,14 @@ test.describe('inventory — standard_user', { tag: '@standard' }, () => {
       inventoryPage,
     }) => {
       await inventoryPage.goto();
-      expect(await inventoryPage.getProductNames()).toEqual(products.map((p) => p.name));
+      await expect.poll(() => inventoryPage.getProductNames()).toEqual(products.map((p) => p.name));
     });
 
     test('every product shows its exact description', async ({ inventoryPage }) => {
       await inventoryPage.goto();
-      expect(await inventoryPage.getProductDescriptions()).toEqual(
-        products.map((p) => p.description),
-      );
+      await expect
+        .poll(() => inventoryPage.getProductDescriptions())
+        .toEqual(products.map((p) => p.description));
     });
 
     test('every product price is formatted with a leading dollar sign', async ({
@@ -119,8 +123,8 @@ test.describe('inventory — standard_user', { tag: '@standard' }, () => {
 
     test('every product offers an enabled Add to cart button', async ({ inventoryPage }) => {
       await inventoryPage.goto();
-      expect(await inventoryPage.getAddToCartButtonCount()).toBe(products.length);
-      expect(await inventoryPage.getEnabledAddToCartButtonCount()).toBe(products.length);
+      await expect.poll(() => inventoryPage.getAddToCartButtonCount()).toBe(products.length);
+      await expect.poll(() => inventoryPage.getEnabledAddToCartButtonCount()).toBe(products.length);
     });
 
     // SW-5 — product sorting. The inventory ordering control is a native <select>;
@@ -133,7 +137,7 @@ test.describe('inventory — standard_user', { tag: '@standard' }, () => {
       const names = await inventoryPage.getProductNames();
       // Default order is ascending by name; no interaction required.
       expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-      expect(await inventoryPage.getActiveSortLabel()).toBe('Name (A to Z)');
+      await expect.poll(() => inventoryPage.getActiveSortLabel()).toBe('Name (A to Z)');
     });
 
     // AC1's four sort modes — one flow (select option → read order), four inputs.
@@ -176,7 +180,7 @@ test.describe('inventory — standard_user', { tag: '@standard' }, () => {
       test(`selecting "${label}" sorts products by ${by}`, async ({ inventoryPage }) => {
         await inventoryPage.goto();
         await inventoryPage.sortBy(value);
-        expect(await inventoryPage.getActiveSortLabel()).toBe(label);
+        await expect.poll(() => inventoryPage.getActiveSortLabel()).toBe(label);
 
         // Displayed order equals those same values sorted in the expected direction
         // (ties, e.g. two $15.99 items, compare equal either way — stable sort).
@@ -239,6 +243,10 @@ test.describe('inventory — error_user', { tag: '@error' }, () => {
         await inventoryPage.sortBy(value);
         // The control is asserted separately from the ordering, so a failure says
         // whether the dropdown ignored the selection or accepted it and did nothing.
+        // NOT expect.poll, deliberately. This test is `test.fail()` — the assertion is
+        // MEANT to fail, and polling would retry it until the expect timeout instead of
+        // failing at once, costing five seconds per run to arrive at the same answer.
+        // eslint-disable-next-line no-restricted-syntax -- see above: an expected failure
         expect(await inventoryPage.getActiveSortLabel()).toBe(label);
 
         const displayed = await inventoryPage[read]();

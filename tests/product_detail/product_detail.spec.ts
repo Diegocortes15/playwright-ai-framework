@@ -21,9 +21,9 @@ test.describe('product_detail — standard_user', { tag: '@standard' }, () => {
       await inventoryPage.goto();
       await inventoryPage.openProductDetail(backpack.name);
 
-      expect(await productDetailPage.getProductName()).toBe(backpack.name);
-      expect(await productDetailPage.getProductDescription()).toBe(backpack.description);
-      expect(await productDetailPage.getProductPrice()).toBe(backpack.price);
+      await expect.poll(() => productDetailPage.getProductName()).toBe(backpack.name);
+      await expect.poll(() => productDetailPage.getProductDescription()).toBe(backpack.description);
+      await expect.poll(() => productDetailPage.getProductPrice()).toBe(backpack.price);
     });
 
     test('adding to cart from the product detail page updates the header cart badge', async ({
@@ -37,7 +37,7 @@ test.describe('product_detail — standard_user', { tag: '@standard' }, () => {
       // reports 0 for "absent" (see CartBadge). A single read is right here: nothing has
       // acted yet, and polling for 0 would pass just as vacuously against a page that had
       // not finished rendering.
-      expect(await productDetailPage.getCartBadgeCount()).toBe(0);
+      await expect.poll(() => productDetailPage.getCartBadgeCount()).toBe(0);
 
       await productDetailPage.clickAddToCart();
       // But this one follows an action, so it must retry — the badge is rendered by the
@@ -57,7 +57,7 @@ test.describe('product_detail — standard_user', { tag: '@standard' }, () => {
       await productDetailPage.clickBackToProducts();
 
       await expect(page).toHaveURL(/\/inventory\.html$/);
-      expect(await inventoryPage.getProductNames()).toHaveLength(products.length);
+      await expect.poll(() => inventoryPage.getProductNames()).toHaveLength(products.length);
     });
   });
 });

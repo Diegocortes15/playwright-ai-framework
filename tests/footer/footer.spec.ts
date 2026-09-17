@@ -26,23 +26,23 @@ test.describe('footer — standard_user', { tag: '@standard' }, () => {
     for (const { network, label, href } of socialLinks) {
       test(`footer ${label} link points to its Sauce Labs URL`, async ({ inventoryPage }) => {
         await inventoryPage.goto();
-        expect(await inventoryPage.footer.getSocialLinkHref(network)).toBe(href);
+        await expect.poll(() => inventoryPage.footer.getSocialLinkHref(network)).toBe(href);
       });
     }
 
     // AC 4: copyright line renders verbatim.
     test('footer shows the Sauce Labs copyright text', async ({ inventoryPage }) => {
       await inventoryPage.goto();
-      expect(await inventoryPage.footer.getCopyrightText()).toBe(
-        '© 2026 Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy',
-      );
+      await expect
+        .poll(() => inventoryPage.footer.getCopyrightText())
+        .toBe('© 2026 Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy');
     });
 
     // SW-18 AC 2: the X link's visible label. The href assertion above would pass
     // through a rename of the anchor's text, which is half of what the rebrand changed.
     test('footer X link shows the label X', async ({ inventoryPage }) => {
       await inventoryPage.goto();
-      expect(await inventoryPage.footer.getSocialLinkLabel('x')).toBe('X');
+      await expect.poll(() => inventoryPage.footer.getSocialLinkLabel('x')).toBe('X');
     });
   });
   // Negative + Edge describes omitted — footer content verification is all Positive.
