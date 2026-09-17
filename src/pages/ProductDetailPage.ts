@@ -6,6 +6,12 @@
 import { test, type Locator, type Page } from '@playwright/test';
 import { Footer } from '@components/Footer';
 import { Header } from '@components/Header';
+import {
+  abortRequests,
+  readImageStates,
+  PRODUCT_IMAGE_URL_GLOB,
+  type ImageLoadState,
+} from '@utils/network';
 
 export class ProductDetailPage {
   // Composed components first (ADR-0001 rule #6).
@@ -19,6 +25,7 @@ export class ProductDetailPage {
   private readonly productPrice: Locator;
   private readonly addToCartButton: Locator;
   private readonly backToProductsButton: Locator;
+  private readonly productImage: Locator;
 
   constructor(public readonly page: Page) {
     this.footer = new Footer(page);
@@ -28,6 +35,11 @@ export class ProductDetailPage {
     this.productPrice = page.locator('[data-test="inventory-item-price"]');
     this.addToCartButton = page.locator('[data-test="add-to-cart"]');
     this.backToProductsButton = page.locator('[data-test="back-to-products"]');
+    // The detail image's data-test embeds the product slug (`item-sauce-labs-backpack-img`),
+    // so there is no constant value to select on — the suffix is the shared part. Still a
+    // data-test attribute (selector order #1), and it stays unique: the only other images
+    // here are the menu icons and the back arrow, whose data-test values don't end in -img.
+    this.productImage = page.locator('[data-test$="-img"]');
   }
 
   // Composed / intent-level action — body wrapped in exactly one test.step.
@@ -68,5 +80,24 @@ export class ProductDetailPage {
 
   async clickBackToProducts(): Promise<void> {
     await this.backToProductsButton.click();
+  }
+
+  // --- Image-load resilience (SW-19) ---
+
+  // Composed action — make the product image fail to load, as a blocked CDN would.
+  // Call BEFORE navigating here: a route only affects requests issued after it is
+  // installed. The glob covers the inventory page's images too, which is what a test
+  // that reaches this page by clicking through the catalog wants.
+  async blockProductImages(): Promise<void> {
+    await test.step('Block every product image request', async () => {
+      await abortRequests(this.page, PRODUCT_IMAGE_URL_GLOB);
+    });
+  }
+
+  // Query — the detail image's load state as data, never a Locator (rule #8).
+  async getProductImageState(): Promise<ImageLoadState> {
+    const [state] = await readImageStates(this.productImage);
+    if (!state) throw new Error('No product image found on the product detail page');
+    return state;
   }
 }
