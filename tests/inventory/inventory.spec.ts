@@ -55,11 +55,14 @@ test.describe('inventory — problem_user', { tag: '@problem' }, () => {
         await inventoryPage.sortBy(value);
         // The control itself is asserted separately from the ordering, so a failure
         // says whether the dropdown ignored the click or accepted it and did nothing.
-        // NOT expect.poll, deliberately. This test is `test.fail()` — the assertion is
-        // MEANT to fail, and polling would retry it until the expect timeout instead of
-        // failing at once, costing five seconds per run to arrive at the same answer.
-        // eslint-disable-next-line no-restricted-syntax -- see above: an expected failure
-        expect(await inventoryPage.getActiveSortLabel()).toBe(label);
+        // expect.poll even though this is `test.fail()` and the assertion is MEANT to fail
+        // today. Without retrying, a page that has not repainted yet fails for a timing
+        // reason, the expected-failure is satisfied, and the run stays green — so the day
+        // SW-14 is fixed the suite would keep reporting the bug as present and nobody would
+        // learn it was fixed. ADR-0024 makes the red the notification; a snapshot assertion
+        // can swallow it. The cost is waiting out the expect timeout while it is still
+        // broken, which is the right trade against missing the fix.
+        await expect.poll(() => inventoryPage.getActiveSortLabel()).toBe(label);
 
         const displayed = await inventoryPage[read]();
         expect(displayed).toEqual(sort(displayed));
@@ -243,11 +246,14 @@ test.describe('inventory — error_user', { tag: '@error' }, () => {
         await inventoryPage.sortBy(value);
         // The control is asserted separately from the ordering, so a failure says
         // whether the dropdown ignored the selection or accepted it and did nothing.
-        // NOT expect.poll, deliberately. This test is `test.fail()` — the assertion is
-        // MEANT to fail, and polling would retry it until the expect timeout instead of
-        // failing at once, costing five seconds per run to arrive at the same answer.
-        // eslint-disable-next-line no-restricted-syntax -- see above: an expected failure
-        expect(await inventoryPage.getActiveSortLabel()).toBe(label);
+        // expect.poll even though this is `test.fail()` and the assertion is MEANT to fail
+        // today. Without retrying, a page that has not repainted yet fails for a timing
+        // reason, the expected-failure is satisfied, and the run stays green — so the day
+        // SW-14 is fixed the suite would keep reporting the bug as present and nobody would
+        // learn it was fixed. ADR-0024 makes the red the notification; a snapshot assertion
+        // can swallow it. The cost is waiting out the expect timeout while it is still
+        // broken, which is the right trade against missing the fix.
+        await expect.poll(() => inventoryPage.getActiveSortLabel()).toBe(label);
 
         const displayed = await inventoryPage[read]();
         expect(displayed).toEqual(sort(displayed));
