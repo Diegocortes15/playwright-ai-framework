@@ -131,7 +131,7 @@ Projects are **data-driven from `tests/users.ts` `AUTH_USERS`** (currently `['st
 - **Adding a test:** put it under `tests/<feature>/*.spec.ts`. Tag it correctly. Use `@fixtures/test` for `test`/`expect`, never `@playwright/test`.
 - **Adding a page:** put it under `src/pages/`. Compose any existing Components first. Hold page-unique locators directly.
 - **Adding a component:** put it under `src/components/`. Only if reused (or about to be reused) by 2+ pages.
-- **Adding test data:** put reference data in `data/shared/`, scenarios in `data/scenarios/<feature>/`. Add a typed loader in `data/fixtures.ts`.
+- **Adding test data:** **inline in the spec is the default.** Externalize to `data/` only on a concrete trigger — reused across specs, large, owned by a non-engineer, env-specific, or a named scenario; the rule is `from-issue`'s `references/data-placement.md`. When you do externalize, reference data goes in `data/shared/` and scenarios in `data/scenarios/<feature>/`, with a typed loader in `data/fixtures.ts`.
 - **Architectural changes:** read `docs/adr/` first; if you need to overturn an ADR, write a superseding one rather than editing the original. Every ADR declares **`Enforced by:`** — the lint rule, test, or config that makes it true, or `Nothing — prose only`. If a decision states something a machine can check, write the check: ADR-0005 stated one without a gate, the code was reverted three months later, and the record sat `Accepted` the whole time (see ADR-0023).
 
 ## What to NEVER do
