@@ -6,6 +6,12 @@
 import { test, type Locator, type Page } from '@playwright/test';
 import { Footer } from '@components/Footer';
 import { Header } from '@components/Header';
+import {
+  abortRequests,
+  readImageStates,
+  PRODUCT_IMAGE_URL_GLOB,
+  type ImageLoadState,
+} from '@utils/network';
 
 export class InventoryPage {
   // Composed components first (ADR-0001 rule #6).
@@ -187,5 +193,60 @@ export class InventoryPage {
   // Query — cart count from the header badge; 0 when the badge is absent.
   async getCartBadgeCount(): Promise<number> {
     return this.header.getCartItemCount();
+  }
+
+  // --- Image-load resilience (SW-19) ---
+
+  // A single product card's image. Reuses the card scope, so the name filter decides
+  // which of the six this is.
+  private productImage(productName: string): Locator {
+    return this.productCard(productName).locator('img.inventory_item_img');
+  }
+
+  // Composed action — make every product image fail to load, as a blocked CDN would.
+  // Call BEFORE goto(): a route only affects requests issued after it is installed.
+  async blockProductImages(): Promise<void> {
+    await test.step('Block every product image request', async () => {
+      await abortRequests(this.page, PRODUCT_IMAGE_URL_GLOB);
+    });
+  }
+
+  // Composed action — make ONE product's image fail while the rest keep loading, then
+  // reload so the page re-requests them under the new route.
+  async blockProductImage(productName: string): Promise<void> {
+    // The URL has to come from the rendered card rather than be hardcoded: the asset
+    // filename carries a build hash (sauce-backpack-1200x1500-CjRW-Djj.jpg), so a redeploy
+    // would silently leave a literal pattern matching nothing — and a test that blocks
+    // nothing passes for the wrong reason (the trap SW-19 names). Read outside the step
+    // below because the empty-src guard is a conditional, which eslint's
+    // playwright/no-conditional-in-test flags anywhere inside a test.step body.
+    const source = await this.productImage(productName).getAttribute('src');
+    if (!source) throw new Error(`No image src found for product "${productName}"`);
+
+    await test.step(`Block the "${productName}" product image and reload`, async () => {
+      await abortRequests(this.page, `**${source}`);
+      // The image already loaded on this page view, so the route has nothing to catch
+      // until the page asks for it again.
+      await this.page.reload();
+      await this.productNames.first().waitFor({ state: 'visible' });
+    });
+  }
+
+  // Queries — return load state as data, never a Locator (ADR-0001 rule #8).
+  async getProductImageStates(): Promise<ImageLoadState[]> {
+    return readImageStates(this.productImages);
+  }
+
+  async getProductImageState(productName: string): Promise<ImageLoadState> {
+    const [state] = await readImageStates(this.productImage(productName));
+    if (!state) throw new Error(`No product image found for "${productName}"`);
+    return state;
+  }
+
+  // Query — whether the card for this product shows its name as visible text. Scoped to
+  // the card so it answers "this product is still identifiable", not "the string appears
+  // somewhere on the page".
+  async isProductNameVisible(productName: string): Promise<boolean> {
+    return this.productCard(productName).getByText(productName, { exact: true }).isVisible();
   }
 }

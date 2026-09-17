@@ -32,7 +32,7 @@
     },
     {
       "title": "all six product titles render exactly and in catalog order",
-      "acText": "The six product titles match the catalog exactly, in Name A\u2192Z display order.",
+      "acText": "The six product titles match the catalog exactly, in Name A→Z display order.",
       "user": "standard_user",
       "tags": ["@standard"],
       "bucket": "Positive",
@@ -275,6 +275,66 @@
         "url": "https://diegocortes15.atlassian.net/browse/SW-17",
         "reason": "the inventory sort dropdown discards the selection for error_user: the active label stays \"Name (A to Z)\" whatever option is chosen, so the control never registers the click. Same symptom as SW-14 for problem_user, filed separately and likely one root cause."
       }
+    },
+    {
+      "title": "a blocked product image leaves the product name visible on its inventory card",
+      "acText": "IF standard_user opens the inventory page and its product images cannot load, THEN the card for \"Sauce Labs Backpack\" shall display that name as visible text.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "inventory",
+      "contextLabel": "standard_user",
+      "jira": [
+        {
+          "key": "SW-19",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-19"
+        }
+      ]
+    },
+    {
+      "title": "a blocked inventory image still exposes the product name as its alt text",
+      "acText": "IF standard_user opens the inventory page and its product images cannot load, THEN that card's image element shall expose \"Sauce Labs Backpack\" as its alt text.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "inventory",
+      "contextLabel": "standard_user",
+      "jira": [
+        {
+          "key": "SW-19",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-19"
+        }
+      ]
+    },
+    {
+      "title": "a blocked product detail image still exposes the product name as its alt text",
+      "acText": "IF standard_user opens the detail page for \"Sauce Labs Backpack\" and its image cannot load, THEN the detail image element shall expose that name as its alt text.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "inventory",
+      "contextLabel": "standard_user",
+      "jira": [
+        {
+          "key": "SW-19",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-19"
+        }
+      ]
+    },
+    {
+      "title": "one product's blocked image leaves the other five images rendered",
+      "acText": "IF exactly one product's image fails while the other five succeed, THEN the inventory page shall still render those five images.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "inventory",
+      "contextLabel": "standard_user",
+      "jira": [
+        {
+          "key": "SW-19",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-19"
+        }
+      ]
     }
   ]
 }
