@@ -42,10 +42,29 @@ is_inert() {
 is_global() {
   case "$1" in
     playwright*.config.ts | tsconfig.json | package.json | package-lock.json | eslint.config.*) return 0 ;;
-    src/fixtures/* | src/utils/* | src/observations/* | data/*) return 0 ;;
+    src/fixtures/* | src/observations/* | data/*) return 0 ;;
+    # env.ts is read at config-eval time and by every entry point, so a change there can
+    # alter any run. The REST of src/utils/ is ordinary shared code and resolves by name
+    # below — lumping the whole directory in here sent SW-19 to ALL over a helper that two
+    # Page Objects use, which is the over-selection this script exists to avoid, not cause.
+    src/utils/env.ts) return 0 ;;
     tests/users.ts | tests/auth.setup.ts) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+# Specs that mention a name, case-insensitively. A spec reaches a Page Object through its
+# fixture (`inventoryPage`) and a Component through the property holding it (`.footer`), so
+# the basename is what to look for. Deliberately loose: over-selecting costs seconds,
+# under-selecting costs a green check on untested code.
+specs_naming() {
+  grep -rlis -- "$1" tests --include='*.spec.ts' 2>/dev/null || true
+}
+
+# How other modules import this file: src/utils/network.ts → utils/network. Enough to match
+# both the path alias (@utils/network) and a relative import (../utils/network).
+module_specifier() {
+  printf '%s' "$1" | sed 's|^src/||; s|\.ts$||'
 }
 
 specs=()
@@ -60,7 +79,7 @@ for f in $CHANGED; do
       # A changed spec runs itself. Deletions never reach here (--diff-filter=AMR).
       [ -f "$f" ] && specs+=("$f")
       ;;
-    src/pages/* | src/components/*)
+    src/pages/* | src/components/* | src/utils/*)
       # Resolve by NAME, which works because a spec reaches a Page Object through its
       # fixture (`inventoryPage`) and a Component through the property holding it
       # (`.footer`). Case-insensitive and deliberately loose: over-selecting costs seconds,
@@ -69,11 +88,25 @@ for f in $CHANGED; do
       # Construction breakage needs no separate canary. Fixtures are lazy, so any spec that
       # names the subject also instantiates the page composing it — if the constructor
       # broke, these specs are exactly the ones that fail.
-      name=$(basename "$f" .ts)
-      found=$(grep -rlis -- "$name" tests --include='*.spec.ts' 2>/dev/null || true)
+      found=$(specs_naming "$(basename "$f" .ts)")
+
+      # Nothing names it directly? Follow ONE level of the import graph before giving up. A
+      # helper like src/utils/network.ts is never mentioned in a spec — the spec calls
+      # `inventoryPage.blockProductImages()` — but the Page Objects importing it ARE named,
+      # and those resolve.
       if [ -z "$found" ]; then
-        # Changed code no spec appears to exercise. Could be genuinely uncovered, or the
-        # name match could have missed it; either way this is not the place to decide.
+        importers=$(grep -rls -- "$(module_specifier "$f")" src --include='*.ts' 2>/dev/null || true)
+        while IFS= read -r importer; do
+          [ -z "$importer" ] && continue
+          found="$(printf '%s\n%s' "$found" "$(specs_naming "$(basename "$importer" .ts)")")"
+        done <<<"$importers"
+        found=$(printf '%s' "$found" | grep -v '^[[:space:]]*$' || true)
+      fi
+
+      if [ -z "$found" ]; then
+        # Changed code nothing appears to exercise, directly or one hop away. Could be
+        # genuinely uncovered, or both matches could have missed it; either way this is not
+        # the place to decide.
         echo "ALL"
         exit 0
       fi
