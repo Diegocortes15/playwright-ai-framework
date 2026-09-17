@@ -77,28 +77,6 @@ const failures = [];
   }
 }
 
-// --- ADR-0031: "Verification scope is resolved by one script, and it fails safe" ---------
-//
-// The hole this protects against was introduced by a hand-rolled diff in the workflow —
-// `git diff -- tests/ | grep '.spec.ts$'`, which exited 0 when it matched nothing and let a
-// pull request pass having run no tests at all. Re-hand-rolling it is a small, plausible
-// edit that reads fine in review, so the gate is simply: the pull-request test step must go
-// through the shared resolver.
-{
-  const path = '.github/workflows/test.yml';
-  if (existsSync(path)) {
-    const yaml = readFileSync(path, 'utf-8');
-    if (!yaml.includes('scripts/affected-specs.sh')) {
-      failures.push(
-        `ADR-0031: ${path} no longer calls scripts/affected-specs.sh. That script is what ` +
-          'makes an unmappable change run the whole suite instead of nothing — PR #94 passed ' +
-          'green having run zero tests before it existed. Restore the call, or supersede ' +
-          'ADR-0031 with a record that says why it changed.',
-      );
-    }
-  }
-}
-
 if (failures.length > 0) {
   console.error('check-adr-invariants: an ADR decision is contradicted by configuration.\n');
   for (const f of failures) console.error(`  ${f}\n`);

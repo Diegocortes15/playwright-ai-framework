@@ -199,7 +199,7 @@ ls src/pages/checkout/<PageName>.ts 2>/dev/null
 
 - **Either path exists** → reuse the existing Page Object. Record a collision warning for the PR body. During render (Step 7 / Step 8.5), the Page Object may need changes to support the new tests:
   - **Add** — a new test needs a locator/method the Page Object lacks → **append** it, following the composed-vs-primitive + `test.step` conventions in `scaffold-page-object/references/page-object-template.md`. Existing members are untouched. Record any selector that lands below the preference order (`[data-test]` → `getByRole` → text → CSS) as you write it — Step 13 reports it (ADR-0022). When the new members query many similar elements (cards/rows), choose parallel-array queries vs a discriminator component per `scaffold-page-object/references/component-detection.md` ("Parallel-array queries vs a discriminator component"). **Component-extraction judgment applies on augment, not just at page-scaffold:** if the new members form a **distinct sub-widget** — its own panel/menu/region with several locators + actions (e.g. a header burger menu) — prefer extracting a **nested component** (composed by the target, depth ≤ 2 per rule #11, like `CartBadge` under `Header`) over fattening the target into a multi-widget grab-bag. Apply `component-detection.md`'s "is this a component?" test to the new cluster. (SW-10/SW-11's burger menu accreted onto `Header` member-by-member before it was extracted into `BurgerMenu` — the per-ticket append never stepped back to see the emerging widget; this note is that step-back.)
-  - **Modify** — a new test needs an **existing** method to behave differently → modify it in place. Per ADR-0010, modifying a shared method can regress other specs; Step 10 widens verification on its own by asking the repository's `scripts/affected-specs.sh` what the change reaches, so no run-internal flag is needed for it.
+  - **Modify** — a new test needs an **existing** method to behave differently → modify it in place. Per ADR-0010, modifying a shared method can regress other specs; Step 10 runs the smoke set alongside the target spec, which is where a regression in a shared method shows up; the merge run's full suite is the broad net (ADR-0032).
   - **Irreconcilable** — if a required change would break the existing method's contract in a way you cannot reconcile, **abort**: _"augmenting <KEY> needs `<Method>` to change incompatibly; edit `<PageObject>` manually, then re-run."_ No PR.
 - **Neither path exists** → invoke `/scaffold-page-object` with inputs:
   - Page name: `<PageName>`
@@ -358,27 +358,24 @@ compiler and would hand back a PASS the run never earned.
 
 ### 10. Run the generated tests
 
-**Ask the resolver what this change reaches.** The repository's `scripts/affected-specs.sh`
-— the repository root's, not this skill's — is the same script the pull-request check uses, so what runs here and what runs in CI cannot drift:
+**Run the smoke set, then the target spec.** Two commands, in that order (ADR-0032):
 
 ```bash
-affected=$(scripts/affected-specs.sh "$base")   # $base from Step 1.5
+npx playwright test --grep "@smoke"
+npx playwright test <testfile>
 ```
 
-- **Empty** → nothing under test changed. Run `<testfile>` anyway: this run generated it.
-- **`ALL`** → the change reaches shared code (config, the fixture, `tests/users.ts`, a
-  utility) and cannot be scoped. Run `npx playwright test`.
-- **A list of specs** → run exactly those: `npx playwright test $affected`.
+Smoke first because it is ~8 tests and a few seconds, and a critical-path regression should
+stop the run before anything slower. Then the spec this run generated or augmented.
 
-Record in the PR's Verification section which of the three it was, and why, plus per-spec
-PASS/FAIL.
+**Do not compute an "affected" set and do not run the whole suite.** Both were tried and both
+are recorded in ADR-0032: a resolver that walks names and imports bottoms out at 87% of this
+suite, because one Page Object is named by almost every spec; and the full suite inside a
+generation loop is paid up to three more times by the fix loop. The broad net is the merge
+run's job, not this step's.
 
-**Do not substitute `--only-changed` for this.** Playwright's flag looks at changed *test
-files*; measured on this repository, a change to `src/components/Footer.ts` alone selects
-`_framework_validation.spec.ts` and **misses `footer/footer.spec.ts`** — the only spec that
-asserts on the footer. Two throwaway specs importing `Footer`, one through the `@components`
-alias and one by relative path, were both missed, so the tsconfig aliases are not the cause.
-It works correctly when a spec file itself changes, which is not the case this step is for.
+Record in the PR's Verification section that smoke plus the target spec ran, with per-test
+PASS/FAIL for both.
 
 **Never pass `--reporter=...` here.** The flag *replaces* the reporter list from
 `playwright.config.ts`, which silently drops `ObservationsReporter` — the run would produce
