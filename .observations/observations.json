@@ -166,7 +166,7 @@
       "signature": "failed-request:GET:https://www.saucedemo.com/checkout-step-one.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 10,
+      "count": 16,
       "firstSeen": "2026-09-04",
       "lastSeen": "2026-09-18",
       "status": "ignored",
@@ -209,7 +209,7 @@
       "signature": "failed-request:GET:https://www.saucedemo.com/inventory.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 55,
+      "count": 49,
       "firstSeen": "2026-09-04",
       "lastSeen": "2026-09-18",
       "status": "ignored",
@@ -245,7 +245,7 @@
         "url": "https://events.backtrace.io/api/summed-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "problem_user logs out from the menu and returns to the login page",
+        "test": "standard_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [
@@ -268,7 +268,7 @@
         "url": "https://events.backtrace.io/api/unique-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "problem_user logs out from the menu and returns to the login page",
+        "test": "standard_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [

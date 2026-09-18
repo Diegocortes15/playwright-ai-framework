@@ -108,6 +108,7 @@ Projects are **data-driven from `tests/users.ts` `AUTH_USERS`** (currently `['st
 | Page objects                                    | `src/pages/` (`LoginPage.ts`, `InventoryPage.ts`, `CartPage.ts`, `checkout/*`)                                                                   |
 | Components                                      | `src/components/` (`Header.ts`, `Footer.ts`, `CartBadge.ts`, `BurgerMenu.ts`)                                                                    |
 | Fixture (auto-injects pages)                    | `src/fixtures/test.ts` — tests import `test`/`expect` from `@fixtures/test`, NOT `@playwright/test`                                              |
+| Seeding state without the UI                    | `seedCart` in `src/fixtures/test.ts` — for preconditions that are setup, not the subject. A test that verifies the action still clicks           |
 | Test data + types + loaders                     | `data/` (use `@data/*` alias)                                                                                                                    |
 | env config                                      | `src/utils/env.ts` (single read point for `process.env`)                                                                                         |
 | Specs                                           | `tests/<feature>/*.spec.ts`                                                                                                                      |
