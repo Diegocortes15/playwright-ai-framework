@@ -70,13 +70,22 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.SAUCEDEMO_BASE_URL ?? 'https://www.saucedemo.com',
-    // Keep a trace for failures only. Measured on the standard project (58 tests, 3 runs each):
-    // recording costs no time above the noise floor — trace=off came out SLOWER than trace=on in
-    // the second measurement — but `trace: 'on'` left 61 MB across 91 trace files, which every
-    // green run uploads as an artifact for nobody. 'retain-on-failure', not 'on-first-retry':
-    // retries are 0 locally, so 'on-first-retry' would mean no trace at all on a developer's
-    // machine, which is where a trace gets read most.
-    trace: 'retain-on-failure',
+    // Always record a trace, so the trace viewer has data for every test — pass or fail. Reading
+    // the steps of a test that PASSED is a real use, and 'retain-on-failure' cannot serve it.
+    //
+    // The cost is paid knowingly. Measured on the standard project (58 tests, n=10 per setting,
+    // interleaved and repeated in reverse order to rule out drift): recording costs +1.17s on
+    // 13.39s, or +8.7%. An earlier measurement here claimed it was free; that one took 3 samples
+    // in block order, and the drift between blocks inverted the result. Interleave, or do not
+    // bother measuring.
+    //
+    // Disk is the part that is genuinely cheap: 61 MB across 91 traces locally, a 50.3 MB CI
+    // artifact, and 4s to upload it. Retention is 7 days.
+    //
+    // 8.7% of a 30-second suite is affordable. If this suite reaches the point where it is not,
+    // the replacement is 'retain-on-failure' and NOT 'on-first-retry' — retries are 0 locally, so
+    // 'on-first-retry' keeps no trace at all on a developer's machine.
+    trace: 'on',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10_000,

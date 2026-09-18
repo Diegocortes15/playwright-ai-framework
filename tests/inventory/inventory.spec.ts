@@ -19,18 +19,11 @@ const [backpack] = products;
 // outside the repository most needs. A trace is not a substitute: reading one requires
 // `npx playwright show-trace` and a checkout, which puts an engineer between a BA and the bug.
 //
-// The trace belongs here too, now that the global default is 'retain-on-failure' — an expected
-// failure is not a failure, so these tests would otherwise carry none, and /report-bug extracts a
-// network.har from the trace that opens in any browser's network panel with no checkout at all.
-//
-// Forced on for this file only. Measured cost: +12% run time and +12 MB of artifacts. It has to be
-// file-level. `video` forces a new worker, and so does `trace` — measured, not assumed: scoping
-// only `trace` to the two broken-account describes below fails the run outright with "Cannot
-// use({ trace }) in a describe group". So the 15 passing standard_user tests in this file keep a
-// trace nobody opens, which is the price of the convention that one feature file holds every
-// user-context describe for that feature. Splitting the broken accounts into their own spec would
-// recover it and break that convention, which /from-issue's augmentation depends on.
-test.use({ screenshot: 'on', video: 'on', trace: 'on' });
+// Forced on for this file only. Measured cost: +12% run time and +12 MB of artifacts. It has to
+// be file-level — `video` cannot be scoped to a describe, because it forces a new worker. The same
+// is true of `trace`, which is why the config keeps it 'on' globally rather than per-describe:
+// scoping it here fails the run outright with "Cannot use({ trace }) in a describe group".
+test.use({ screenshot: 'on', video: 'on' });
 
 // problem_user is one of saucedemo's intentionally-broken accounts: the inventory
 // page serves the same placeholder image (sl-404) for every product instead of a

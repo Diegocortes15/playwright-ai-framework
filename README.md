@@ -98,7 +98,7 @@ Observations **never fail a test** — the fixture records, it never judges ([AD
 
 ### 4. The full picture — DOM, network, console, step by step
 
-A failing test keeps a trace (`trace: 'retain-on-failure'`). In the HTML report, click a test → **Traces** for an inline timeline with DOM snapshots at every action.
+`trace: 'on'` means **every** test has a trace, not just failures. In the HTML report, click a test → **Traces** for an inline timeline with DOM snapshots at every action — including for tests that passed, which is the point.
 
 The trace also carries the full network log, so `/report-bug` extracts it as a `network.har` — openable in any browser's DevTools under Network → Import HAR, with no checkout and no `npx`. It is an extraction, not a second recording: turning on `recordHar` would write the same bytes twice.
 
@@ -212,14 +212,23 @@ flowchart TD
 
 | Artifact    | When       | Config                          |
 | ----------- | ---------- | ------------------------------- |
-| Trace       | on failure | `trace: 'retain-on-failure'`    |
+| Trace       | every test | `trace: 'on'`                   |
 | Screenshot  | on failure | `screenshot: 'only-on-failure'` |
 | Video       | on failure | `video: 'retain-on-failure'`    |
 | HTML report | every run  | `reporter: [['html', …]]`       |
 
-This used to be `trace: 'on'` — a trace for every test, pass or fail. Measured on the standard project (58 tests, three runs each), recording cost no run time above the noise floor, but it left **61 MB across 91 trace files** that every green run uploaded for nobody to read. `'retain-on-failure'` rather than `'on-first-retry'`, because retries are 0 locally and `'on-first-retry'` would mean no trace at all on a developer's machine.
+`trace: 'on'` buys always-on debuggability at a measured price. On the standard project (58 tests, **n=10 per setting**, interleaved and then repeated in reverse order to rule out drift):
 
-One file opts back in: `tests/inventory/inventory.spec.ts` sets `trace: 'on'` alongside `screenshot: 'on'` and `video: 'on'`, because Playwright does not count a `test.fail()` test's expected failure as a failure — so the tests locked to a known defect, the ones whose evidence someone outside the repository most needs, would otherwise capture nothing.
+|             | mean   | stdev |
+| ----------- | ------ | ----- |
+| `trace=on`  | 14.56s | 0.45  |
+| `trace=off` | 13.39s | 0.44  |
+
+**+1.17s, or +8.7%.** An earlier version of this section claimed recording was free; that measurement took three samples in block order and the drift between blocks inverted the result. Interleave, or do not bother.
+
+Disk is the cheap part: 61 MB across 91 traces locally, a 50.3 MB artifact in CI, **4 seconds** to upload it, 7-day retention.
+
+8.7% of a 30-second suite is a deliberate trade — reading the steps of a test that _passed_ is a real use, and no failure-only setting can serve it. If the suite ever outgrows that, the replacement is `'retain-on-failure'` and **not** `'on-first-retry'`: retries are 0 locally, so `'on-first-retry'` would keep no trace at all on a developer's machine.
 
 From CI, download the **`playwright-report`** artifact and run `npx playwright show-report ./playwright-report`; the traces are bundled inside.
 
