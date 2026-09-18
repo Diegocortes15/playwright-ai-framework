@@ -1,4 +1,4 @@
-# Playwright IA Automation Framework — Saucedemo
+# Playwright AI Automation Framework — Saucedemo
 
 [![Playwright Tests](https://github.com/Diegocortes15/playwright-ai-framework/actions/workflows/test.yml/badge.svg)](https://github.com/Diegocortes15/playwright-ai-framework/actions/workflows/test.yml)
 ![Playwright](https://img.shields.io/badge/Playwright-1.59-2EAD33?logo=playwright&logoColor=white)
@@ -13,7 +13,7 @@
 - **A ticket goes in; a reviewed pull request comes out** — the tests, the Page Objects they need, and the acceptance criterion each test covers.
 - **The AI writes once. Every run after that is plain Playwright** reading committed files. Clone this and run `npm test` with no Claude Code installed and you still get the Jira links and the criteria.
 - **A run never opens a red PR.** It diagnoses and retries up to three times; if the _application_ is what contradicts the ticket, it opens nothing and says so.
-- **11 of 14 generated PRs landed exactly as generated** — measured, with its caveats, [below](#the-skills).
+- **12 of 16 generated PRs landed exactly as generated** — measured, with its caveats, [below](#the-skills).
 
 ![overview](docs/images/hero.png)
 
@@ -30,7 +30,7 @@ cp .env.example .env          # saucedemo defaults work out of the box
 npm test
 ```
 
-**91 tests, ~29 seconds.** The tests need nothing else — no Claude Code, no Jira, no Qase account. The AI-authoring layer is additive and entirely optional.
+**112 tests, ~34 seconds.** The tests need nothing else — no Claude Code, no Jira, no Qase account. The AI-authoring layer is additive and entirely optional.
 
 Node **22.x** is enforced rather than suggested: `.nvmrc`, an `engines` field and `engine-strict=true` mean `npm install` refuses another major instead of warning.
 
@@ -39,10 +39,10 @@ Node **22.x** is enforced rather than suggested: `.nvmrc`, an `engines` field an
 ```bash
 npx playwright install firefox webkit    # ~175 MB, once
 npm run test:firefox                     # the standard user on Gecko
-npm run test:cross -- --grep "@smoke"    # both engines, smoke only — 9 tests, ~11s
+npm run test:cross -- --grep "@smoke"    # both engines, smoke only — 17 tests, ~13s
 ```
 
-The full standard suite passes on both: **84 tests on Firefox (~46s), 84 on WebKit (~32s)**, against 91 on chromium in ~29s. Only the standard user goes cross-browser — engine differences live in the framework's interaction code, not in saucedemo's per-user bugs.
+The full standard suite passes on both: **91 tests on Firefox (~46s), 91 on WebKit (~33s)**, against 112 on chromium in ~34s. Only the standard user goes cross-browser — engine differences live in the framework's interaction code, not in saucedemo's per-user bugs.
 
 Its first real use paid for itself: WebKit exposed a race in `InventoryPage.goto()` that chromium had always won, and the fix landed with it ([ADR-0027](docs/adr/0027-cross-browser-opt-in.md)).
 
@@ -55,15 +55,19 @@ Everything here runs locally against the public app. Good for showing someone wh
 ### 1. A run where failing is the correct outcome
 
 ```bash
-npx playwright test --project=chromium-problem
+npx playwright test --project=chromium-problem --grep "@problem"
 ```
 
+The `--grep` narrows to the tests pinned to this user. Without it the project also runs the
+seven footer tests that `@all-users` routes to every authenticated context, which are not the
+point here.
+
 ```
+✓ problem_user sees one identical broken image for every product
 ✘ problem_user sorts products by name descending
 ✘ problem_user sorts products by price ascending
-✓ problem_user sees one identical broken image for every product
 
-4 passed (3.7s)
+4 passed (7.6s)
 ```
 
 **Two tests failed and the suite is green.** They are locked to a real, open defect with `test.fail()`, so they assert the _correct_ behaviour while the bug is open. The day it is fixed, the run reports **"Expected to fail, but passed."** and someone has to come remove the marker — the suite notifies you instead of relying on memory ([ADR-0024](docs/adr/0024-blocked-test-lands-as-expected-failure.md)).
@@ -87,7 +91,7 @@ npm run observations
 Every run records console errors, uncaught exceptions, failed requests and native dialogs, then renders them as prose — **network and console without opening devtools**:
 
 ```
-**0 not yet reviewed · 14 reviewed.**
+**0 not yet reviewed · 14 reviewed · 2 not seen when last exercised.**
 
 #### ⚠️ failed request (third party) (reviewed)
 The page asked a third-party service for `POST https://events.backtrace.io/…` and got
@@ -115,14 +119,14 @@ flowchart LR
     J["Jira ticket<br/>(project SW)"] -->|"/refine-ticket"| R["Hardened<br/>acceptance criteria"]
     R -->|"/from-issue"| G["Tests + Page Objects<br/>+ TCMS record"]
     G --> PR["GitHub Pull Request"]
-    PR -->|"CI: changed specs only<br/>+ typecheck + strict lint"| Rev["Human review"]
+    PR -->|"CI: smoke + changed specs<br/>+ typecheck + strict lint"| Rev["Human review"]
     Rev -->|merge| M["main"]
     M -->|"CI: full suite<br/>+ catalog sync"| Q["Qase TCMS<br/>(human-readable cases)"]
 ```
 
 1. **`/refine-ticket`** hardens a ticket's acceptance criteria against a rubric and writes them back to Jira — so the next step has nothing to guess.
 2. **`/from-issue`** reads the ticket through the **Atlassian MCP**, generates tests + Page Objects, runs them, writes a committed TCMS record, and opens a **PR**. It **never opens a red PR**: on failure it diagnoses and retries up to three times, and if the _app_ is what contradicts the criterion, it reports and opens nothing ([ADR-0020](docs/adr/0020-no-red-pr.md)).
-3. **CI on the PR** runs only the specs that PR changed, behind a typecheck + strict-lint gate.
+3. **CI on the PR** runs the smoke set plus the specs that PR changed, behind a typecheck + strict-lint gate ([ADR-0032](docs/adr/0032-pr-runs-smoke-plus-changed-specs.md)). Smoke is unconditional, which is what keeps a change that touches no spec from running nothing.
 4. **A human reviews and merges** — the PR is the review gate.
 5. **CI on merge** runs the full suite, syncs the catalog to Qase, and commits the refreshed id map back.
 
@@ -154,7 +158,7 @@ ADR-0011 says outright that it **scopes** ADR-0007 rather than reversing it, whi
 
 **What it costs:** an MCP server is a connection that can drop, and it did — Jira access was lost to inactivity and needed a fresh session to reconnect. A CLI does not have that failure mode. The trade bought no secrets in the repo, and that was judged worth it.
 
-**How well it works, measured:** of **14** merged `/from-issue` pull requests, **11 landed exactly as generated**. The other three needed one follow-up commit each — extracting a component, removing a conditional from a test body, and tightening a locator to an exact match. Two caveats that keep the number honest: there is a **single reviewer**, and a change amended into the original commit would be invisible to this count.
+**How well it works, measured:** of **16** merged `/from-issue` pull requests, **12 landed exactly as generated**. The other four needed one follow-up commit each — extracting a component, removing a conditional from a test body, tightening a locator to an exact match, and correcting a comment that explained a correct decision with the wrong mechanism. Three caveats that keep the number honest: there is a **single reviewer**; a change amended into the original commit would be invisible to this count; and the fourth follow-up changed only a comment, which is a weaker miss than the other three — counted anyway, because a metric that forgives the small ones stops meaning anything.
 
 ![refined Jira ticket](docs/images/jira-ticket.png)
 
@@ -191,7 +195,7 @@ flowchart TD
 
 - **The rules are enforced, not suggested** — Pages never return Pages, queries return data (never a `Locator`), nesting depth ≤ 2, no XPath, no `waitForTimeout`. ESLint fails the build on the checkable ones. Full list in [`CLAUDE.md`](CLAUDE.md) and [`docs/architecture.md`](docs/architecture.md).
 - **Data-driven projects** — `playwright.config.ts` derives every project from `tests/users.ts` `AUTH_USERS` (`['standard', 'problem', 'error']` today), giving seven projects. Each user yields `setup-<user>` + `chromium-<user>`, plus `chromium-no-auth`. New users wire in on demand ([ADR-0014](docs/adr/)); cross-browser adds four more, opt-in behind `CROSS_BROWSER=1` ([ADR-0027](docs/adr/0027-cross-browser-opt-in.md)).
-- **Tags route tests to projects** — `@no-auth`, `@standard`, `@problem`, `@all-users`, `@smoke`. They live in the `{ tag }` option, never in the title ([ADR-0015](docs/adr/)) — a lint rule enforces it.
+- **Tags route tests to projects** — `@no-auth`, `@standard`, `@problem`, `@error`, `@all-users`, `@smoke`. They live in the `{ tag }` option, never in the title ([ADR-0015](docs/adr/)) — a lint rule enforces it.
 
 **Coverage:** login · inventory (content + sort) · product detail · footer · cart · checkout (information → overview → complete) · logout · burger menu.
 
@@ -199,14 +203,14 @@ flowchart TD
 
 ## Continuous integration
 
-| Workflow                                             | Trigger                                     | What runs                                                                   |
-| ---------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- |
-| [`test.yml`](.github/workflows/test.yml)             | Pull request                                | typecheck + lint (`--max-warnings 0`) → **only the specs the PR changed**   |
-| [`test.yml`](.github/workflows/test.yml)             | Push to `main`                              | typecheck + lint → **full suite** → Qase sync → commit refreshed `qase-map` |
-| [`regression.yml`](.github/workflows/regression.yml) | smoke every other day · regression biweekly | the scope + a labeled Qase run + an HTML report + a Slack message           |
-| [`regression.yml`](.github/workflows/regression.yml) | Actions → **Run workflow**                  | smoke _or_ full, on demand                                                  |
+| Workflow                                             | Trigger                                     | What runs                                                                    |
+| ---------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`test.yml`](.github/workflows/test.yml)             | Pull request                                | typecheck + lint (`--max-warnings 0`) → **smoke + the specs the PR changed** |
+| [`test.yml`](.github/workflows/test.yml)             | Push to `main`                              | typecheck + lint → **full suite** → Qase sync → commit refreshed `qase-map`  |
+| [`regression.yml`](.github/workflows/regression.yml) | smoke every other day · regression biweekly | the scope + a labeled Qase run + an HTML report + a Slack message            |
+| [`regression.yml`](.github/workflows/regression.yml) | Actions → **Run workflow**                  | smoke _or_ full, on demand                                                   |
 
-"Changed specs only" is a deliberate choice over Playwright's `--only-changed`, which follows the import graph and re-runs the world when a shared fixture changes; the full suite on merge is the real integration gate. Each scheduled run posts pass/fail counts, duration, environment, and links to the Qase run and the report artifact.
+"Smoke plus changed specs" is a deliberate choice over Playwright's `--only-changed`, which follows the import graph and re-runs the world when a shared fixture changes; the full suite on merge is the real integration gate. A resolver that mapped changed source files back to specs was built, measured at 77 of 88 tests for one Page Object change, and deleted ([ADR-0032](docs/adr/0032-pr-runs-smoke-plus-changed-specs.md)). Each scheduled run posts pass/fail counts, duration, environment, and links to the Qase run and the report artifact.
 
 **What's captured when:**
 
@@ -217,7 +221,7 @@ flowchart TD
 | Video       | on failure | `video: 'retain-on-failure'`    |
 | HTML report | every run  | `reporter: [['html', …]]`       |
 
-`trace: 'on'` buys always-on debuggability at a measured price. On the standard project (58 tests, **n=10 per setting**, interleaved and then repeated in reverse order to rule out drift):
+`trace: 'on'` buys always-on debuggability at a measured price. Measured on the standard project when it held 58 tests — it holds 65 now, and the percentage is what carries over, not the seconds — with **n=10 per setting**, interleaved and then repeated in reverse order to rule out drift:
 
 |             | mean   | stdev |
 | ----------- | ------ | ----- |
@@ -226,7 +230,7 @@ flowchart TD
 
 **+1.17s, or +8.7%.** An earlier version of this section claimed recording was free; that measurement took three samples in block order and the drift between blocks inverted the result. Interleave, or do not bother.
 
-Disk is the cheap part: 61 MB across 91 traces locally, a 50.3 MB artifact in CI, **4 seconds** to upload it, 7-day retention.
+Disk is the cheap part: 66 MB across 112 traces locally, a ~50 MB artifact in CI, **4 seconds** to upload it, 7-day retention.
 
 8.7% of a 30-second suite is a deliberate trade — reading the steps of a test that _passed_ is a real use, and no failure-only setting can serve it. If the suite ever outgrows that, the replacement is `'retain-on-failure'` and **not** `'on-first-retry'`: retries are 0 locally, so `'on-first-retry'` would keep no trace at all on a developer's machine.
 
@@ -281,7 +285,7 @@ At merge, CI creates/updates/archives Qase **cases** (suite tree `feature › co
 │   ├── fixtures/       # Playwright fixture — injects Page Objects into tests
 │   ├── observations/   # Runtime observation capture, dedup index and digest
 │   ├── tcms/           # Qase TCMS mirror (seam, case-mapper, sync, client)
-│   └── utils/          # env config (single process.env read point) + logger
+│   └── utils/          # env config (single process.env read point), network helpers, run metadata
 ├── data/               # Reference data + typed loaders (@data/*)
 ├── tests/              # Specs (one folder per feature) + auth.setup.ts + users.ts
 ├── auth/               # Generated storageState (git-ignored)
