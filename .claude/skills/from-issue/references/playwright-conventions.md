@@ -264,6 +264,61 @@ checkout test keeps its clicks for exactly this reason — seeding it would let 
 the purchase flow dead, which is the regression that tier exists to catch.
 
 Seed before the first navigation: an init script only affects pages loaded after it is added.
+## Network interception
+
+Everything below was settled by SW-19, the first ticket that needed it. Its run reported
+this file as a reference gap, which is why the section exists.
+
+### An interception lives in the Page Object, never in the spec
+
+A spec says `await inventoryPage.blockProductImages()`. It never calls `page.route`, for the
+same reason it never touches a Locator (ADR-0001 rule #4): the URL shape of an asset is the
+page's business. The primitives go in a helper the Page Object calls — `src/utils/network.ts`
+holds `abortRequests` and `readImageStates` — and the Page Object wraps each in one named
+`test.step`.
+
+### Install the route BEFORE navigating
+
+A route only affects requests issued after it is added. `blockProductImages()` is called
+before `goto()`, and the method's comment says so, because the failure mode is silent: block
+after navigating and the page already has its images, the assertion sees a loaded image and
+the test fails for a reason that looks like a product bug.
+
+When the page is already open and you need it anyway, install the route and **reload** —
+that is what `blockProductImage(name)` does for the one-image case.
+
+### Prove the failure happened, or the test passes vacuously
+
+This is the discipline the whole ticket turned on. Asserting only what stays visible is not
+enough, because the visible thing is usually there either way: saucedemo's `alt` text is
+present whether or not the image loads, so a test asserting it alone **passes green having
+blocked nothing**.
+
+Every interception test asserts two things:
+
+1. the failure really occurred, and
+2. the behaviour under test.
+
+For an image that is `naturalWidth === 0` **and** `complete === true`. The second half is not
+decoration: an image still in flight also reports width 0, so `naturalWidth` alone cannot
+tell "failed" from "not downloaded yet", and a test asserting it would pass against a page
+that was merely slow.
+
+### Derive the URL from the page, never hardcode it
+
+Asset filenames carry build hashes — `sauce-backpack-1200x1500-CjRW-Djj.jpg`. A literal
+pattern silently matches nothing after a redeploy, and a test that blocks nothing passes for
+the wrong reason. `blockProductImage` reads the `src` off the rendered card and routes on
+that. A glob over a directory (`**/assets/*.jpg`) is fine; a glob over a hashed filename is
+not.
+
+### Start with isolation, not with business mocking
+
+`route.abort()` on third-party noise and on assets, and deliberate latency, apply to any
+application today. Replacing business responses with `route.fulfill()` needs an application
+that has an API to replace; saucedemo serves its catalogue from its own bundle and keeps the
+cart in `localStorage`, so there is nothing to mock. Check what the app actually requests
+before designing around a REST call that may not exist.
 
 ## See also
 
