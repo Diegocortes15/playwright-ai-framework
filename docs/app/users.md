@@ -27,9 +27,9 @@ deferred by ADR-0004 and later built opt-in by ADR-0027 — four Firefox/WebKit 
 | Username                  | Authenticated project | Intent                                                      | Behaviour verified?                             |
 | ------------------------- | --------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
 | `standard_user`           | `chromium-standard`   | Happy path — everything works                               | ✅ fully                                        |
-| `locked_out_user`         | none                  | Login fails with a lockout error                            | ❌ **nothing verifies this**                    |
+| `locked_out_user`         | none                  | Login fails with a lockout error                            | ✅ both paths, `chromium-no-auth`               |
 | `problem_user`            | `chromium-problem`    | Wrong product images; broken sort dropdown                  | ✅ both                                         |
-| `performance_glitch_user` | none                  | ~10s artificial delay on every navigation                   | ⚠️ login/logout only; the delay is not asserted |
+| `performance_glitch_user` | none                  | ~5s delay on login, inventory load and sort — not elsewhere | ⚠️ login/logout only; the delay is not asserted |
 | `error_user`              | none                  | Broken sort dropdown (same as problem); intermittent errors | ⚠️ login/logout only; sort via instrumentation  |
 | `visual_user`             | none                  | Intentional visual regressions (font sizes, colors)         | ⚠️ login/logout only; the regressions are not   |
 
@@ -51,10 +51,12 @@ deferred by ADR-0004 and later built opt-in by ADR-0027 — four Firefox/WebKit 
 ### `locked_out_user`
 
 - **Behavior:** Login fails. Saucedemo returns the error: _"Epic sadface: Sorry, this user has been locked out."_
-- **Used by:** nothing.
-- **Verified by:** ❌ **nothing.** There is no test for this user anywhere — `grep -rn "locked" tests/` finds only two comments explaining its _absence_, and the expected error string appears nowhere in the repository. An earlier version of this file said "Login spec only (`tests/login/login.spec.ts`)", which was false: that spec loops the five users that _can_ authenticate and never touches this one.
-- **Worth knowing why the belief was so durable:** `smoke-policy.md` and `bucket-classification.md` both use `locked_out_user sees the lockout error` as a **worked example** of a smoke-worthy negative test. The examples are illustrative and not wrong, but they read as descriptions of existing coverage.
-- **Highest-value missing test in this file.** It is a `@no-auth` negative case, needs no storageState, and `LoginPage` already exposes `loginAs` and `getErrorMessage`.
+- **Used by:** `chromium-no-auth`.
+- **Verified by:** ✅ **both paths**, in `tests/login/login.spec.ts`, added by SW-15 on 2026-09-07:
+  - `locked_out_user is rejected with the lockout error` (`@smoke`) — asserts the exact banner text, that the login button is still on screen, and that the URL never became the inventory page. The last two are deliberately in positive form: a bare `not.toHaveURL(/inventory/)` would pass trivially before any navigation happened.
+  - `locked_out_user with a wrong password sees the credentials error, not the lockout error` — the credential check runs first, so a wrong password never reveals that the account is locked. Asserting the _absence_ of the lockout string is what stops a future change from leaking account state to someone who does not hold the password.
+- **This entry said `Verified by: nothing` until 2026-09-18**, eleven days after the tests landed, and called this "the highest-value missing test in this file" — the test it was asking for already existed. Two earlier corrections are recorded below; this was a third, in the opposite direction. The lesson is the same one ADR-0023 draws: a claim about coverage has to be checked against the runner, not against this file. `npx playwright test --list | grep locked` settles it in one command.
+- **Worth knowing why the belief was so durable:** `smoke-policy.md` and `bucket-classification.md` both use `locked_out_user sees the lockout error` as a **worked example** of a smoke-worthy negative test. The examples are illustrative and not wrong, but they read as descriptions of existing coverage — and here they described coverage that later became real, which made the stale claim harder to notice rather than easier.
 - **Why no storageState:** authentication never succeeds, so there is no session to save.
 
 ### `problem_user`
@@ -74,9 +76,28 @@ deferred by ADR-0004 and later built opt-in by ADR-0027 — four Firefox/WebKit 
 
 ### `performance_glitch_user`
 
-- **Behavior:** Artificially slow. Each page navigation takes ~10 seconds (saucedemo injects a deliberate delay). Functionality is otherwise correct.
+- **Behavior:** Artificially slow, but **not everywhere**. Measured against `standard_user` on 2026-09-18, three runs each:
+
+  | Action                      | `standard_user` | `performance_glitch_user` |
+  | --------------------------- | --------------- | ------------------------- |
+  | login → inventory rendered  | ~45 ms          | **~5 090 ms**             |
+  | reload of `/inventory.html` | ~50 ms          | **~5 040 ms**             |
+  | selecting a sort option     | ~10 ms          | **~5 005 ms**             |
+  | add to cart                 | ~20 ms          | ~23 ms                    |
+  | open a product's detail     | ~16 ms          | ~13 ms                    |
+  | inventory → cart            | ~15 ms          | ~17 ms                    |
+  | each checkout step          | 18–33 ms        | 18–34 ms                  |
+  | logout                      | ~876 ms         | ~876 ms                   |
+
+  So the delay is **~5 seconds on three actions** — login, an inventory page load, and sorting — and absent from everything else. Functionality is otherwise correct.
+
+  **This entry said "~10 seconds on every navigation" until 2026-09-18.** Both halves were wrong: the magnitude by a factor of two, and the scope in a way that matters more — sorting is not a navigation, while opening a product detail and every checkout step _are_ navigations and carry no delay at all. A test written from the old description would have asserted the wrong duration in the wrong places.
+
+  One measurement did not reproduce: a single run showed +4 975 ms on add-to-cart, and six later samples showed none. It is recorded here unexplained rather than averaged away.
+
 - **Used by:** `chromium-no-auth` only. There is **no** `performance_glitch` project — one appears only when a ticket needs this user's authenticated page (ADR-0014).
-- **Verified by:** ⚠️ **partly.** Login and logout are covered by the five-user loops in `tests/login/login.spec.ts` and `tests/logout/logout.spec.ts`. The ~10s delay itself is **not asserted** — it is merely _tolerated_, by a `{ timeout: 15_000 }` on the logout spec's URL assertion. So the suite would still pass if the delay vanished, and would fail if it grew past 15s. Neither outcome is an intentional test.
+- **Verified by:** ⚠️ **login and logout only**, via the five-user loops in `tests/login/login.spec.ts` and `tests/logout/logout.spec.ts`. **The delay itself is still not asserted by anything** — the numbers above come from an ad-hoc measurement, not from the suite. It is merely _tolerated_, by a `{ timeout: 15_000 }` on the logout spec's URL assertion, so the suite would pass if the delay vanished and fail if it grew past 15s. Neither outcome is an intentional test.
+- **A ticket to assert it was drafted on 2026-09-18 and not pursued.** Recorded so the next person does not re-derive it: the bounds would have to be wide enough to survive a shared CI runner, which makes the assertion weak precisely where it would need to be strong. If it is revived, note that it also needs `performance_glitch` wired into `AUTH_USERS` (ADR-0014), since three of the measured actions require an authenticated page.
 - **Note:** an earlier version of this file described a `navigationTimeout: 30_000` override in `playwright.config.ts` for a `performance_glitch` project. Neither the project nor the override exists.
 
 ### `error_user`
