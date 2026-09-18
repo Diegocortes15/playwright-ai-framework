@@ -30,7 +30,7 @@ cp .env.example .env          # saucedemo defaults work out of the box
 npm test
 ```
 
-**83 tests, ~24 seconds.** The tests need nothing else — no Claude Code, no Jira, no Qase account. The AI-authoring layer is additive and entirely optional.
+**91 tests, ~29 seconds.** The tests need nothing else — no Claude Code, no Jira, no Qase account. The AI-authoring layer is additive and entirely optional.
 
 Node **22.x** is enforced rather than suggested: `.nvmrc`, an `engines` field and `engine-strict=true` mean `npm install` refuses another major instead of warning.
 
@@ -42,7 +42,7 @@ npm run test:firefox                     # the standard user on Gecko
 npm run test:cross -- --grep "@smoke"    # both engines, smoke only — 9 tests, ~11s
 ```
 
-The full standard suite passes on both: **79 tests on Firefox (~45s), 79 on WebKit (~31s)**, against 83 on chromium in ~25s. Only the standard user goes cross-browser — engine differences live in the framework's interaction code, not in saucedemo's per-user bugs.
+The full standard suite passes on both: **84 tests on Firefox (~46s), 84 on WebKit (~32s)**, against 91 on chromium in ~29s. Only the standard user goes cross-browser — engine differences live in the framework's interaction code, not in saucedemo's per-user bugs.
 
 Its first real use paid for itself: WebKit exposed a race in `InventoryPage.goto()` that chromium had always won, and the fix landed with it ([ADR-0027](docs/adr/0027-cross-browser-opt-in.md)).
 
@@ -188,7 +188,7 @@ flowchart TD
 ```
 
 - **The rules are enforced, not suggested** — Pages never return Pages, queries return data (never a `Locator`), nesting depth ≤ 2, no XPath, no `waitForTimeout`. ESLint fails the build on the checkable ones. Full list in [`CLAUDE.md`](CLAUDE.md) and [`docs/architecture.md`](docs/architecture.md).
-- **Data-driven projects** — `playwright.config.ts` derives every project from `tests/users.ts` `AUTH_USERS` (`['standard', 'problem']` today). Each user yields `setup-<user>` + `chromium-<user>`, plus `chromium-no-auth`. New users wire in on demand ([ADR-0014](docs/adr/)); cross-browser is a separate deliberate decision ([ADR-0004](docs/adr/)).
+- **Data-driven projects** — `playwright.config.ts` derives every project from `tests/users.ts` `AUTH_USERS` (`['standard', 'problem', 'error']` today), giving seven projects. Each user yields `setup-<user>` + `chromium-<user>`, plus `chromium-no-auth`. New users wire in on demand ([ADR-0014](docs/adr/)); cross-browser adds four more, opt-in behind `CROSS_BROWSER=1` ([ADR-0027](docs/adr/0027-cross-browser-opt-in.md)).
 - **Tags route tests to projects** — `@no-auth`, `@standard`, `@problem`, `@all-users`, `@smoke`. They live in the `{ tag }` option, never in the title ([ADR-0015](docs/adr/)) — a lint rule enforces it.
 
 **Coverage:** login · inventory (content + sort) · product detail · footer · cart · checkout (information → overview → complete) · logout · burger menu.
