@@ -43,7 +43,8 @@ The dividing line:
 
 ## How to externalize in THIS framework
 
-Per CLAUDE.md "When extending the framework":
+The layout this skill follows, stated here because a skill lifted into another repository takes this
+file and leaves CLAUDE.md behind:
 
 - **Reference data** (shared across features) → `data/shared/<name>.json`
 - **Scenario data** (named, per-feature payloads) → `data/scenarios/<feature>/<name>.json`
@@ -123,4 +124,8 @@ The list of saucedemo products is reference data used by inventory, cart, and ch
 
 - [`test-principles.md`](test-principles.md) — F.I.R.S.T. (Repeatable/Independent overlap with data choices)
 - [`test-template.md`](test-template.md) — the spec the data lands in
-- CLAUDE.md "When extending the framework" — the `data/` layout + `@data/*` alias (single source of truth)
+- CLAUDE.md "When extending the framework" — the repository-side copy of the `data/` layout and the
+  `@data/*` alias. **Not the source of truth for this skill**, which would be a coupling it is not
+  allowed to have: a skill directory is the portability boundary, so a skill lifted into another
+  repository takes this file and leaves CLAUDE.md behind. The layout this skill follows is stated
+  above under "How to externalize in THIS framework" — keep the two in agreement by editing both.
