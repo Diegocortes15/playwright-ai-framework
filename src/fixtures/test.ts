@@ -8,10 +8,25 @@ import { CheckoutInfoPage } from '@pages/checkout/CheckoutInfoPage';
 import { CheckoutOverviewPage } from '@pages/checkout/CheckoutOverviewPage';
 import { CheckoutCompletePage } from '@pages/checkout/CheckoutCompletePage';
 import { reportAnnotations } from '@utils/report-annotations';
+import { products } from '@data/fixtures';
 import { describeEvent, groupOf, iconFor, type ObservationGroup } from '../observations/digest';
 import { isThirdParty, signatureFor } from '../observations/signature';
 import { ignoredSignatures } from '../observations/triage';
 import { ATTACHMENT_NAME, MAX_EVENTS_PER_TEST, type ObservationEvent } from '../observations/types';
+
+/**
+ * Puts products in the cart WITHOUT clicking through the inventory.
+ *
+ * Reaching a state through the UI is right when reaching it is what the test is about, and
+ * wrong when it is setup. Six checkout tests were paying a navigation, three add-to-cart
+ * clicks, a cart open, a checkout click and a three-field form before touching the screen
+ * they actually assert on — which means the day the "Add to cart" button changes, six tests
+ * about the overview page go red for something they are not testing.
+ *
+ * Call it BEFORE the first navigation: it installs an init script, and an init script only
+ * affects pages loaded after it is added.
+ */
+export type SeedCart = (productNames: readonly string[]) => Promise<void>;
 
 type Pages = {
   loginPage: LoginPage;
@@ -24,8 +39,29 @@ type Pages = {
 };
 
 export const test = base.extend<
-  Pages & { _reportAnnotation: void; _observations: ObservationEvent[] }
+  Pages & { seedCart: SeedCart; _reportAnnotation: void; _observations: ObservationEvent[] }
 >({
+  // saucedemo keeps the cart in localStorage under `cart-contents`, as a JSON array of its
+  // own product ids — verified live on 2026-09-18. Writing that key is exactly what the
+  // add-to-cart button does, so the application cannot tell the difference.
+  //
+  // This is the same technique the suite already trusts for authentication: 58 tests start
+  // logged in because `storageState` seeds the session rather than replaying the login form,
+  // and the 26 that TEST logging in still do it through the UI. Same rule here — a test
+  // about adding to the cart clicks; a test about the screen after it seeds.
+  seedCart: async ({ context }, use) => {
+    await use(async (productNames) => {
+      const ids = productNames.map((name) => {
+        const product = products.find((candidate) => candidate.name === name);
+        if (!product) throw new Error(`seedCart: no product named "${name}" in the catalog`);
+        return product.id;
+      });
+      await context.addInitScript((contents: string) => {
+        window.localStorage.setItem('cart-contents', contents);
+      }, JSON.stringify(ids));
+    });
+  },
+
   // Auto fixture — annotate each test in the Playwright report with its Jira
   // ticket link(s) and the acceptance criterion it covers, derived from
   // `.tcms/records/<feature>.json` (feature = the spec's parent dir). No per-test
