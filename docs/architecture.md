@@ -28,7 +28,7 @@ Phase C+ will layer on the `/from-jira` orchestrator, a code-review skill, and s
 
 - **Node.js 22.x** — runtime; pinned by `.nvmrc`, `engines` and `engine-strict=true`. (An earlier version said it was "required for native ESM import attributes" — that was ADR-0005's rationale, which ADR-0023 superseded. JSON now loads through a typed `fs` loader.)
 - **TypeScript 5.9** (`strict: true`, `noUnusedLocals`, `noUnusedParameters`) — language; strict mode keeps AI-generated code correct over time
-- **Playwright 1.59.x** — test runner and browser automation engine. **Chromium only**: firefox and webkit are installed with the package but no project uses them (ADR-0004 deferred cross-browser and it was never built).
+- **Playwright 1.59.x** — test runner and browser automation engine. **Chromium by default, firefox and webkit opt-in**: ADR-0004 deferred cross-browser, [ADR-0027](adr/0027-cross-browser-opt-in.md) built it behind `CROSS_BROWSER=1`, so `npm test` is chromium-only and `npm run test:cross` is not.
 - **ESLint v9 flat config + `eslint-plugin-playwright`** — lint with Playwright-specific safety rules (`no-wait-for-timeout`, `prefer-web-first-assertions`, etc.) that Biome does not yet provide
 - **Prettier 3** (with `endOfLine: 'auto'` for cross-platform CRLF/LF compatibility) — formatter
 - **dotenv** — local env var loading (`.env` → `src/utils/env.ts` single read point)
@@ -244,7 +244,7 @@ See [ADR-0003](adr/0003-data-hybrid-shared-scenarios.md) for the layout rational
 
 ### Auth setup
 
-`tests/auth.setup.ts` logs each of the five supported users in via the UI at the start of every test run, then persists `storageState` to `auth/<user>.json`. The five users are `standard`, `problem`, `performance_glitch`, `error`, and `visual`. `locked_out_user` is deliberately excluded — login fails for that user, so there is no session to save. The locked-out user is exercised only in `@no-auth` login tests where the negative-path behavior is the point.
+`tests/auth.setup.ts` logs in via the UI at the start of every test run and persists `storageState` to `auth/<user>.json`. **It iterates `AUTH_USERS`, so it logs in exactly the users that are wired** — three today (`standard`, `problem`, `error`), not a fixed list of five. `locked_out_user` could never be here: login fails for that user, so there is no session to save, and it is exercised only in `@no-auth` login tests where the negative path is the point.
 
 StorageState files are engine-portable for saucedemo's basic cookie-based session, so `auth/standard.json` is reused by all three browser engines (`chromium`, `firefox`, `webkit`) without a per-browser auth setup step.
 
@@ -255,32 +255,38 @@ StorageState files are engine-portable for saucedemo's basic cookie-based sessio
 `chromium-no-auth`. A user's project appears the first time a ticket needs it (ADR-0014), so
 the set grows one user at a time and is never pre-populated.
 
-`AUTH_USERS` is currently `['standard', 'problem']`, so today there are **five** projects:
+`AUTH_USERS` is currently `['standard', 'problem', 'error']`, so today there are **seven** projects:
 
-- **`setup-standard`, `setup-problem`** — run `tests/auth.setup.ts` for that user; the matching chromium project depends on it
+- **`setup-standard`, `setup-problem`, `setup-error`** — run `tests/auth.setup.ts` for that user; the matching chromium project depends on it
 - **`chromium-no-auth`** — chromium, no storageState; grep `@no-auth`; login / logout / route-guard tests
 - **`chromium-standard`** — chromium; grep `@all-users|@standard`; storageState `auth/standard.json`
 - **`chromium-problem`** — chromium; grep `@all-users|@problem`; storageState `auth/problem.json`
+- **`chromium-error`** — chromium; grep `@all-users|@error`; storageState `auth/error.json`
+
+Four more appear when `CROSS_BROWSER=1` is set (see below), for eleven in total.
 
 > An earlier version of this section described nine projects — `standard`, `performance_glitch`,
 > `error`, `visual`, `firefox-standard`, `webkit-standard` — with a `navigationTimeout: 30_000`
-> override. **None of them exist.** Cross-browser was deferred by ADR-0004 and never built;
-> per-user projects became demand-driven under ADR-0014. Verify against `npx playwright test --list`
-> rather than against this file if the two ever disagree again.
+> override, at a time when none of them existed. Per-user projects became demand-driven under
+> ADR-0014, and `firefox-standard` / `webkit-standard` later shipped for real under
+> [ADR-0027](adr/0027-cross-browser-opt-in.md). Verify against `npx playwright test --list`
+> rather than against this file if the two ever disagree again — this file has now been wrong in
+> both directions, claiming projects that did not exist and then denying ones that did.
 
 ### Tag conventions
 
 CLAUDE.md's "Tag conventions" table is the source of truth; this restates it against the
 projects that exist today.
 
-| Tag                                          | Runs on                                 | Purpose                                       |
-| -------------------------------------------- | --------------------------------------- | --------------------------------------------- |
-| `@no-auth`                                   | `chromium-no-auth`                      | Login / logout / route-guard, no session      |
-| `@all-users`                                 | `chromium-standard`, `chromium-problem` | User-agnostic flows                           |
-| `@standard`                                  | `chromium-standard`                     | Only standard_user is meaningful              |
-| `@problem`                                   | `chromium-problem`                      | Tests that _expect_ problem_user's broken UI  |
-| `@error` / `@performance_glitch` / `@visual` | **nothing yet**                         | Route only once that user enters `AUTH_USERS` |
-| `@smoke`                                     | Cross-cutting, via `--grep`             | Build-verification set (`npm run test:smoke`) |
+| Tag                               | Runs on                         | Purpose                                       |
+| --------------------------------- | ------------------------------- | --------------------------------------------- |
+| `@no-auth`                        | `chromium-no-auth`              | Login / logout / route-guard, no session      |
+| `@all-users`                      | every `chromium-<user>` project | User-agnostic flows                           |
+| `@standard`                       | `chromium-standard`             | Only standard_user is meaningful              |
+| `@problem`                        | `chromium-problem`              | Tests that _expect_ problem_user's broken UI  |
+| `@error`                          | `chromium-error`                | Tests that _expect_ error_user's broken UI    |
+| `@performance_glitch` / `@visual` | **nothing yet**                 | Route only once that user enters `AUTH_USERS` |
+| `@smoke`                          | Cross-cutting, via `--grep`     | Build-verification set (`npm run test:smoke`) |
 
 **`@sort-functional` is dormant and must not be used as a routing tag.** No project greps it, so
 a describe routed by it alone would run in **zero projects** and the run would report green
@@ -290,13 +296,117 @@ behaviour it was meant to express — that `problem_user` and `error_user` canno
 covered directly by the `test.fail()` tests in `tests/inventory/inventory.spec.ts` against
 SW-14. Wire a project before reviving the tag.
 
-### Cross-browser — deferred, and not built
+### Cross-browser — built, and opt-in
 
-**There is no cross-browser matrix.** [ADR-0004](adr/0004-cross-browser-smoke-pattern.md) deferred it, and nothing since has implemented it: every project is chromium.
+**There is a cross-browser matrix, and `npm test` does not run it.** [ADR-0004](adr/0004-cross-browser-smoke-pattern.md) deferred it; [ADR-0027](adr/0027-cross-browser-opt-in.md) built it opt-in, keeping ADR-0004's guardrail.
 
-An earlier version of this section described firefox and webkit running the standard user and put the suite at "62 test instances". Neither the projects nor that number existed — it was describing the intended design as though it had shipped. **The suite is currently 83 tests across 10 files** (`npx playwright test --list`).
+Setting `CROSS_BROWSER=1` adds four projects — `firefox-no-auth`, `firefox-standard`, `webkit-no-auth`, `webkit-standard` — for eleven in total. The npm scripts set it for you:
 
-The shape ADR-0004 chose, if it is ever built, is chromium across the wired users plus firefox/webkit on `standard` only — enough to catch rendering and locator regressions without re-running saucedemo's intentional per-user bugs in three engines. See [ADR-0002](adr/0002-multi-user-via-projects-storage-state.md) for the multi-user pattern.
+```bash
+npm test              # 91 tests, chromium only
+npm run test:firefox  # + firefox-no-auth, firefox-standard
+npm run test:webkit   # + webkit-no-auth, webkit-standard
+npm run test:cross    # all four
+```
+
+| Invocation        | Projects | Tests |
+| ----------------- | -------- | ----- |
+| `npm test`        | 7        | 91    |
+| `CROSS_BROWSER=1` | 11       | 257   |
+
+**Standard user only, and never a per-user × per-browser matrix.** Firefox and WebKit run `standard` and `no-auth` and nothing else — enough to catch rendering and locator regressions without re-running saucedemo's intentional per-user bugs in three engines. Wiring `firefox-problem` or `webkit-error` is explicitly forbidden. See [ADR-0002](adr/0002-multi-user-via-projects-storage-state.md) for the multi-user pattern.
+
+Two earlier versions of this section were wrong in opposite directions: one described firefox and webkit as shipped when no such project existed and put the suite at "62 test instances"; the next denied the matrix existed months after ADR-0027 built it, and put the suite at 83 tests. Both numbers came from reading the file instead of the runner. `npx playwright test --list` settles it.
+
+### Worker-scoped account pools — the pattern, and why it is not built here
+
+**Nothing in this repository implements this.** It is written down because the question it answers
+comes up the moment this scaffolding is pointed at a real application, and because the wrong answer
+is the intuitive one.
+
+**The problem.** A test that mutates per-account state cannot share that account with another test
+running at the same time. Two tests changing the same user's shipping address, or emptying the same
+user's cart, will flake against each other no matter how well written they are. The instinct is to
+give every test its own account, which means provisioning one account per test — 1000 tests, 1000
+accounts — or to give up and run with `workers: 1`.
+
+**Both are wrong, because the unit that holds an account is the worker, not the test.** A worker
+runs its tests one after another, so a single account serves every test that worker will ever run.
+You need `min(workers, accounts)` accounts, not one per test. Ten workers and ten accounts run a
+thousand tests with no sharing at all.
+
+Playwright expresses this with a **worker-scoped fixture**, which is created once per worker process
+rather than once per test:
+
+```ts
+// src/fixtures/test.ts — illustrative; not wired in this repo
+import { test as base } from '@playwright/test';
+
+type Account = { username: string; password: string };
+
+const ACCOUNTS: readonly Account[] = [
+  /* one entry per account provisioned for the suite */
+];
+
+export const test = base.extend<object, { account: Account }>({
+  account: [
+    async ({}, use, workerInfo) => {
+      // parallelIndex, NOT workerIndex. The difference is a real bug; see below.
+      const account = ACCOUNTS[workerInfo.parallelIndex % ACCOUNTS.length];
+      await use(account);
+    },
+    { scope: 'worker' },
+  ],
+});
+```
+
+That block typechecks under this repo's `strict` settings and passes its lint config — verified,
+because the first draft of it did not: `base.extend<Record<string, never>, …>` looks like the
+natural way to say "no test fixtures" and instead resolves the worker fixture's type to `never`,
+so the file will not compile. `object` is the form that works.
+
+**`parallelIndex`, never `workerIndex`.** Playwright's own types draw the distinction: `parallelIndex`
+is "between `0` and `workers - 1`", guaranteed different for workers running at the same time, and a
+restarted worker "has the same `parallelIndex`". `workerIndex` is instead "unique", and a restarted
+worker "gets a new unique `workerIndex`". So `workerIndex % ACCOUNTS.length` hands out a colliding
+account the first time a worker crashes and is replaced: with three accounts, the replacement for
+worker 1 arrives as `workerIndex` 3, and `3 % 3` is 0 — the account a live worker is already using.
+The failure surfaces later, in an unrelated test, as a flake nobody can reproduce.
+
+**Two ways to assign, and they are not equivalent.**
+
+|                      | Static, by index                                      | Leased from a pool                                                     |
+| -------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| How                  | `ACCOUNTS[parallelIndex % ACCOUNTS.length]`           | the worker checks an account out and returns it                        |
+| Coordination         | none — it is arithmetic                               | shared state across processes: a lock directory, a row lock, a service |
+| `workers` > accounts | two workers silently share an account                 | a worker waits for one to free up                                      |
+| Failure mode         | flake that looks like a product bug                   | a worker blocks, which is visible                                      |
+| Worth it when        | you control `workers` and provision accounts to match | accounts are scarce, expensive, or provisioned elsewhere               |
+
+Start static. It is ten lines and no infrastructure, and it is correct as long as `workers` never
+exceeds the account count — which is a line in the config, so make it one: set `workers` to the
+number of accounts rather than leaving it at the default, and the invariant is enforced instead of
+hoped for. Reach for a lease only when something outside the suite decides how many accounts exist.
+
+**This does not cost parallelism, and the account count does.** The fixture adds no serialization
+whatsoever; workers stay fully parallel. What bounds the run is how many accounts you have: a
+thousand tests against one mutating account are serialized whatever fixture you write, because the
+constraint is the shared state, not the code that hands it out. The honest fix is more accounts. The
+value of writing it as a worker fixture is that the ceiling becomes explicit and countable, instead
+of surfacing as flake at some parallelism nobody chose deliberately.
+
+**Why this repo does not need it.** saucedemo's six accounts are fixed, public, and shared by
+everyone running against the live site, so there is nothing to provision and no isolation to win.
+Its per-user state is also nearly stateless — the cart lives in `localStorage`, which is per browser
+context and therefore already per test. Our accounts are instead a **taxonomy**: `problem_user` and
+`error_user` exist to be broken in specific ways, which is why they map to Playwright projects
+(ADR-0002, ADR-0014) rather than to a pool. A project pins a test to the account whose behaviour is
+the point; a pool hands out an interchangeable one. Those are different tools, and mixing them would
+mean a test could not say which user it needs.
+
+If a skill generates tests for an application that does need this, follow the pattern above rather
+than inventing one, and do not add accounts to `AUTH_USERS` to get it — that array drives projects
+and auth setup, which is the taxonomy, not the pool.
 
 ---
 

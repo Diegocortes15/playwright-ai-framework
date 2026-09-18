@@ -17,7 +17,7 @@ The mechanics travel. The base URL, credentials and TCMS settings are env-driven
 - **An application that changes.** saucedemo is frozen. Selector drift — the single most common cause of suite rot — has never happened here once. Every claim about locator stability in this repo is therefore theoretical.
 - **Test data.** saucedemo needs no setup, no teardown, no isolation between parallel workers. A real app usually needs all three, and none of that machinery exists.
 - **Authentication beyond a login form.** No MFA, no token refresh, no session expiry mid-run. `storageState` is generated once per user and reused.
-- **Scale.** 8 features, 83 tests, 6 products. Nothing here has met a suite where run time or sharding is the constraint.
+- **Scale.** 8 features, 91 tests, 6 products. Nothing here has met a suite where run time or sharding is the constraint.
 
 The honest summary: the _authoring_ layer is the transferable part. The runtime is a small, well-behaved suite against a small, well-behaved app.
 

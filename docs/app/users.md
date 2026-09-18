@@ -16,11 +16,13 @@ Saucedemo provides 6 user accounts. The password is the same for all (`secret_sa
 
 ## Summary
 
-The projects that actually exist are `setup-standard`, `setup-problem`, `chromium-standard`,
-`chromium-problem` and `chromium-no-auth` — derived from `tests/users.ts` `AUTH_USERS`, currently
-`['standard', 'problem']`. Only those two users have an authenticated project; the rest reach the
-app through `chromium-no-auth` by logging in via the UI. Cross-browser stays deferred (ADR-0004),
-and a per-user project appears only when a ticket needs it (ADR-0014).
+The projects that actually exist are `setup-standard`, `setup-problem`, `setup-error`,
+`chromium-standard`, `chromium-problem`, `chromium-error` and `chromium-no-auth` — derived from
+`tests/users.ts` `AUTH_USERS`, currently `['standard', 'problem', 'error']`. Only those three users
+have an authenticated project; the rest reach the app through `chromium-no-auth` by logging in via
+the UI. A per-user project appears only when a ticket needs it (ADR-0014). Cross-browser was
+deferred by ADR-0004 and later built opt-in by ADR-0027 — four Firefox/WebKit projects behind
+`CROSS_BROWSER=1`, standard user only, so they add no per-user coverage.
 
 | Username                  | Authenticated project | Intent                                                      | Behaviour verified?                             |
 | ------------------------- | --------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
