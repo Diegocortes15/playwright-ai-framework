@@ -17,9 +17,10 @@ export class ProductDetailPage {
   // Composed components first (ADR-0001 rule #6).
   readonly footer: Footer;
   readonly header: Header;
-  // Page-direct locators second. Every one resolved to a data-test attribute —
-  // each was checked against the rendered DOM rather than read off the snapshot
-  // (selector order #1, no downgrades).
+  // Page-direct locators second. The product fields are data-test attributes (selector
+  // order #1) scoped to a detail-only container, for the reason spelled out in the
+  // constructor.
+  private readonly detail: Locator;
   private readonly productName: Locator;
   private readonly productDescription: Locator;
   private readonly productPrice: Locator;
@@ -30,16 +31,35 @@ export class ProductDetailPage {
   constructor(public readonly page: Page) {
     this.footer = new Footer(page);
     this.header = new Header(page);
-    this.productName = page.locator('[data-test="inventory-item-name"]');
-    this.productDescription = page.locator('[data-test="inventory-item-desc"]');
-    this.productPrice = page.locator('[data-test="inventory-item-price"]');
+    // saucedemo reuses the SAME data-test values for a detail page's product fields and for
+    // each card in the inventory grid: `inventory-item-name`, `-desc` and `-price` match once
+    // here and SIX times there, and `[data-test$="-img"]` likewise. So these hooks are unique
+    // on this page and ambiguous on the page you arrive from, which made every read a race —
+    // land early and the locator resolves against the grid, and Playwright raises a
+    // strict-mode violation. That throws instead of resolving, so `expect.poll` aborts rather
+    // than retrying, and the test fails. It was reproduced 3 times in 8 full-suite runs.
+    //
+    // Scoping to a container that exists ONLY on the detail page turns that race into a
+    // non-event: on the inventory the container matches nothing, so the child locator matches
+    // nothing, and Playwright auto-waits — zero matches is a wait, many matches is an error.
+    // This is the pattern CartPage already uses with `[data-test="cart-list"]`, which is why
+    // the cart never had this bug.
+    //
+    // The container is a CSS class because the hierarchy offers nothing better: the detail page
+    // has no container of its own carrying a data-test (`inventory-container` is on both pages,
+    // `inventory-item` matches six on the grid), and no heading role at all. Prefer data-test,
+    // but when data-test cannot give a unique selector, take the next level that can — and say
+    // which level, and why, at the call site.
+    this.detail = page.locator('.inventory_details');
+    this.productName = this.detail.locator('[data-test="inventory-item-name"]');
+    this.productDescription = this.detail.locator('[data-test="inventory-item-desc"]');
+    this.productPrice = this.detail.locator('[data-test="inventory-item-price"]');
+    // The image's data-test embeds the product slug (`item-sauce-labs-backpack-img`), so the
+    // suffix is the only constant part — still a data-test, and unambiguous once scoped.
+    this.productImage = this.detail.locator('[data-test$="-img"]');
+    // These two are unique on every page they appear on, so they need no scoping.
     this.addToCartButton = page.locator('[data-test="add-to-cart"]');
     this.backToProductsButton = page.locator('[data-test="back-to-products"]');
-    // The detail image's data-test embeds the product slug (`item-sauce-labs-backpack-img`),
-    // so there is no constant value to select on — the suffix is the shared part. Still a
-    // data-test attribute (selector order #1), and it stays unique: the only other images
-    // here are the menu icons and the back arrow, whose data-test values don't end in -img.
-    this.productImage = page.locator('[data-test$="-img"]');
   }
 
   // Composed / intent-level action — body wrapped in exactly one test.step.
