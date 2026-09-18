@@ -19,11 +19,20 @@ const backpack = products.find((p) => p.name === BACKPACK)!;
 // Two rather than one, deliberately (SW-21): a count of one cannot distinguish "the cart
 // persisted" from "the cart reset to a default of one".
 //
-// Deliberately NOT `seedCart`. That fixture writes `cart-contents` from a context init
-// script, and an init script re-runs on every document saucedemo loads — and saucedemo is a
-// multi-page app, so each navigation these tests make would rewrite the cart to the seeded
-// value. All five persistence tests would then pass with the persistence broken. Seeding is
-// right when the seeded state is setup; here the state SURVIVING is the subject.
+// Deliberately NOT `seedCart`, and the reason is narrower than it first looks. That fixture
+// writes `cart-contents` from a `context.addInitScript`, which re-runs on every new DOCUMENT —
+// not on every navigation. Measured against this app: removing a product through the UI and
+// then opening a product detail page and coming back leaves the cart at one item, because
+// saucedemo routes those client-side and no document is created. A RELOAD does create one, and
+// the cart jumps back to the seeded value.
+//
+// So AC 5 alone settles it: seed the cart and `page.reload()` re-seeds it, and the test passes
+// while asserting nothing about persistence. The other four would have been fine seeded. All
+// five use the UI anyway, because splitting the precondition by which of them survives seeding
+// would be a trap for whoever edits this next.
+//
+// The rule, stated generally so it does not have to be rediscovered: seeding is right when the
+// seeded state is setup, and wrong when the subject is that state SURVIVING a document load.
 async function holdTwoProductsInCart(inventoryPage: InventoryPage): Promise<void> {
   await inventoryPage.goto();
   await inventoryPage.addToCart(BACKPACK);

@@ -422,11 +422,23 @@ git add <testfile>
 #   git add src/pages/checkout/<PageName>.ts
 # If Step 7 externalized data per data-placement.md, also stage the data file(s) + loader:
 #   git add data/scenarios/<feature>/<name>.json data/shared/<name>.json data/fixtures.ts data/types.ts
-# If the run produced runtime observations (ADR-0021), stage the index so anything new
-# the app did shows up in the PR diff. One signature-keyed file, not one per feature:
-#   git add .observations/observations.json
-# Only the index is committed. The prose view is derived — render it with
-# `npm run observations`, and put the new entries in the PR body (see the template).
+# Runtime observations (ADR-0021): DO NOT stage .observations/observations.json.
+#
+# This instruction used to say to stage it. It is reversed because ADR-0032 narrowed Step 10 to
+# smoke plus the target spec, which makes EVERY run a partial run — and ADR-0029 records that a
+# partial run writes false `absentSince` marks, because a signature is marked absent when the
+# run exercised every feature in its `seenIn` and a narrow run did not exercise them at all.
+# Staging it writes "not seen since <today>" into the record on evidence the run did not earn.
+#
+# Two consecutive runs (SW-20, SW-21) hit this and both resolved it by judgment, which is the
+# signal that the instruction was wrong rather than the runs.
+#
+# So: discard the change, and report the real entries in the PR body instead — render them with
+# `npm run observations` and describe any NEW signature in prose. A full `npm test` on main
+# regenerates the index correctly, which is where that file's updates belong.
+#
+# If a new signature matters enough to be recorded rather than described, say so in the PR body
+# and let the reviewer stage it deliberately. Do not stage it as a side effect of a partial run.
 # If Step 6.5 grew the harness (per harness.md), also stage the changed source of truth
 # (and, on first-time creation, the config + auth setup):
 #   git add tests/users.ts

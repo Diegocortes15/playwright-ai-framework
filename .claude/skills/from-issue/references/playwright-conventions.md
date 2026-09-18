@@ -395,6 +395,57 @@ checkout test keeps its clicks for exactly this reason — seeding it would let 
 the purchase flow dead, which is the regression that tier exists to catch.
 
 Seed before the first navigation: an init script only affects pages loaded after it is added.
+
+**And the exception that matters: never seed when the subject is the state SURVIVING.** This is
+not a style preference, it is a test that passes while asserting nothing. `context.addInitScript`
+re-runs on every new **document**, so a seeded value is rewritten every time one is created — and
+`page.reload()` creates one. A persistence test that seeds its precondition and then reloads is
+handed the seeded value back by the fixture and goes green with the behaviour completely broken.
+
+Measured on saucedemo, because the boundary is not where you would guess:
+
+| After | Seeded cart |
+| ----- | ----------- |
+| seeding, then removing an item through the UI | `[1]` — the removal stuck |
+| opening a product detail page and returning | `[1]` — **no re-seed**, routed client-side |
+| `page.reload()` | `[4,1]` — **re-seeded** |
+
+So "every navigation re-seeds" is false and "a reload re-seeds" is true. In-app navigation through
+the application's own controls is client-side here and creates no document. Do not generalise from
+one app either: whether a given transition creates a document is a property of the app, so if the
+subject is survival, drive the precondition through the UI and do not spend the analysis.
+
+`tests/cart/cart.spec.ts` carries the worked example — SW-21's five persistence tests build the
+cart with two clicks for exactly this reason.
+## Browser-level navigation belongs in the spec, not in a Page Object
+
+`page.goBack()`, `page.goForward()` and `page.reload()` are called **directly from the spec**. They
+are not Page Object methods.
+
+The reason is ownership. A Page Object's methods are the actions that page offers — its buttons,
+its links, its form. Back and reload are the browser's controls, and they work the same on every
+page, so a `CartPage.reload()` would have to be repeated on every Page Object in the framework and
+would still be describing something the page does not own. The existing precedent is
+`tests/logout/logout.spec.ts`, which calls `page.goBack()` from the spec, and `tests/cart/`
+followed it for SW-21's AC 4 and AC 5.
+
+This is a deliberate exception to "if a behavior needs a named action the Page Object doesn't
+expose, add a composed method", which otherwise holds. Take the `page` fixture alongside the page
+objects and use it for these three calls only.
+
+**Assert you arrived before you go back.** A `goBack()` that has nothing to undo is a silent no-op,
+and the test then asserts against the page it never left — which reads as a pass. SW-21's AC 4
+asserts the checkout URL first for exactly this reason:
+
+```ts
+await cartPage.checkout();
+await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
+await page.goBack();
+```
+
+Note also what a reload does to a seeded precondition — see "Reaching the state a test starts
+from" above. A reload re-runs the init script, so a persistence test that seeds cannot fail.
+
 ## Network interception
 
 Everything below was settled by SW-19, the first ticket that needed it. Its run reported
