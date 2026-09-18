@@ -79,6 +79,56 @@
       "feature": "cart",
       "contextLabel": "standard_user",
       "jira": [{ "key": "SW-6", "url": "https://diegocortes15.atlassian.net/browse/SW-6" }]
+    },
+    {
+      "title": "the cart badge still shows two after opening a product detail page and returning",
+      "acText": "Given the cart holds two products, when the shopper opens a product's detail page and returns to the inventory, the cart badge shall still show '2'.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Positive",
+      "feature": "cart",
+      "contextLabel": "standard_user",
+      "jira": [{ "key": "SW-21", "url": "https://diegocortes15.atlassian.net/browse/SW-21" }]
+    },
+    {
+      "title": "opening the cart lists exactly the two products it holds",
+      "acText": "Given the cart holds two products, when the shopper opens the cart, it shall list exactly those two products and no others.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Positive",
+      "feature": "cart",
+      "contextLabel": "standard_user",
+      "jira": [{ "key": "SW-21", "url": "https://diegocortes15.atlassian.net/browse/SW-21" }]
+    },
+    {
+      "title": "the cart badge still shows two after continue shopping",
+      "acText": "Given the cart holds two products, when the shopper opens the cart and chooses \"Continue Shopping\", the cart badge on the inventory page shall still show '2'.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Positive",
+      "feature": "cart",
+      "contextLabel": "standard_user",
+      "jira": [{ "key": "SW-21", "url": "https://diegocortes15.atlassian.net/browse/SW-21" }]
+    },
+    {
+      "title": "the cart still lists both products after entering checkout and navigating back",
+      "acText": "Given the cart holds two products, when the shopper enters checkout and then navigates back, the cart shall still list exactly those two products.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "cart",
+      "contextLabel": "standard_user",
+      "jira": [{ "key": "SW-21", "url": "https://diegocortes15.atlassian.net/browse/SW-21" }]
+    },
+    {
+      "title": "the cart still lists both products after the cart page is reloaded",
+      "acText": "Given the cart holds two products, when the cart page is reloaded, it shall still list exactly those two products.",
+      "user": "standard_user",
+      "tags": ["@standard"],
+      "bucket": "Edge",
+      "feature": "cart",
+      "contextLabel": "standard_user",
+      "jira": [{ "key": "SW-21", "url": "https://diegocortes15.atlassian.net/browse/SW-21" }]
     }
   ]
 }
