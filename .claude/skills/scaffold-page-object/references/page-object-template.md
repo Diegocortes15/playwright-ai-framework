@@ -88,6 +88,17 @@ export class <Name>Page {
   `data-test`.
 - **Never use `.first()` or `.nth(0)` to quiet a strict-mode violation.** It turns a correct, loud
   error into a test that silently reads an arbitrary element. A wrong count means a wrong locator.
+- **A method never returns another Page.** Return `Promise<void>` or data. Fluent navigation was
+  considered and rejected: it makes every Page know the graph of every Page it can reach, so a
+  routing change edits unrelated files, and the test reads as a chain whose type says nothing about
+  where it ended up. This is the rule most likely to be reintroduced by accident, because fluent
+  Page Objects are what most tutorials teach.
+- **Never import another Page into a Page.** Same rule seen from the file system, and the earlier
+  signal: needing a sibling Page's import means a method is about to return one. Two Pages needing
+  the same element means a Component, not an import.
+- **A Component knows Locators and optionally child Components — never a Page, never its parent.** A
+  component that reaches upward cannot be composed by a second page, which is the only reason to
+  have it. Nesting stops at depth 2 (ADR-0001 rule #11).
 - **Field order** — composed components first, then page-direct locators (ADR-0001 rule #6)
 - **Constructor wiring order** — same as field order
 - **Action method naming** — start from element's accessible name, normalize to camelCase, strip filler words (`to`, `the`, `and`, `a`, `of`), favor brevity (`"Continue to Checkout"` → `clickContinue`)

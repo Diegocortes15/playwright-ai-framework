@@ -143,6 +143,34 @@ The same reasoning applies to a suffix or prefix match: `[data-test$="-img"]` lo
 detail page and matched six on the grid. A partial-attribute match is a bet on what else exists,
 and it needs the same two counts as anything else.
 
+## Composition rules the generated code must obey
+
+Stated here rather than cited, because a skill lifted into another repository takes this file and
+leaves CLAUDE.md behind. These are the shape decisions, and the first one is the most likely to be
+reintroduced by accident — fluent Page Objects are what most tutorials teach.
+
+**A Page method never returns another Page.** Return `void` or data. Fluent navigation
+(`loginPage.login().then(inventoryPage => …)`) was considered and rejected: it makes every Page know
+the graph of every Page it can reach, so a routing change edits files that have nothing to do with
+it, and a test reads as a chain whose type tells you nothing about where you ended up. Tests
+navigate explicitly through injected page fixtures instead, so the spec says which page it is on.
+
+**No Page imports another Page.** That is the same rule seen from the file system, and it is the one
+a generator breaks first: needing an import from a sibling Page is the signal that a method is about
+to return one. If two Pages need the same element, it becomes a Component.
+
+**A Component knows about Locators and, optionally, child Components. Never about a Page, and never
+about its parent.** A component that reaches upward cannot be composed by a second page, which is
+the only reason it exists. Nesting stops at depth 2.
+
+**A Page composes Components and holds page-unique Locators.** It never composes another Page.
+
+**Tests know Pages and Data only** — never a raw Locator, never a Component directly.
+
+If you are generating for an app whose team already uses fluent Page Objects, this is a real
+disagreement and not a detail: say so in the obstacles section rather than quietly following the
+house style of whichever repository you are standing in.
+
 ## Web-first assertions (auto-retrying)
 
 Always use `expect(locator).matcher()` patterns. They auto-retry until passing or timeout.

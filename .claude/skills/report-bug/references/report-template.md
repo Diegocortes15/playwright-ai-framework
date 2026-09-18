@@ -45,6 +45,19 @@ Name `network.har` in the report only when the failure is network-shaped — a r
 resource that never loads, a wrong payload. Pointing a reader at it for a sorting bug wastes
 their time, and the folder carries it either way.
 
+**Never publish this folder to an unauthenticated host.** Not GitHub Pages, not a public bucket, not
+a paste service, not a link anyone with the URL can open — and this holds however convenient it
+would be for the person reading the ticket. A trace records response bodies and live session
+tokens, so it inherits the confidentiality of the application under test, and the HAR is plainer to
+read than the trace: it is JSON anybody can open. `trace-to-har.mjs` redacts credential cookie and
+header values, which is a floor and not a licence; text response bodies are copied verbatim, so a
+HAR from an app with real data holds real data.
+
+Attach the folder to the ticket, where it inherits the tracker's permissions, or ship the CI
+artifact, which inherits the repository's. If someone asks for a public link, the answer is the
+artifact plus access, not a copy on a host with no door. This is the same reason the framework
+never publishes its HTML report: the report bundles the traces.
+
 ## Runtime observations during this test
 
 <one line per observation, or "None recorded.">
