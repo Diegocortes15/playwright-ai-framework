@@ -39,4 +39,13 @@ export class Footer {
   async getCopyrightText(): Promise<string> {
     return (await this.copyright.textContent())?.trim() ?? '';
   }
+
+  // SW-20: the application computes the copyright year from the browser's clock —
+  // verified by shifting the clock before any page script ran (2027 and 2030 both
+  // rendered). So the expected year has to come from the SAME clock the page used,
+  // not from the test process: two clocks in different time zones disagree for a
+  // few hours either side of midnight on 31 December, and that is not a defect.
+  async getPageYear(): Promise<number> {
+    return this.page.evaluate(() => new Date().getFullYear());
+  }
 }

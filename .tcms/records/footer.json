@@ -2,12 +2,12 @@
   "records": [
     {
       "title": "footer X link points to its Sauce Labs URL",
-      "acText": "WHEN standard_user opens the inventory page, the footer shall expose a social link whose href is exactly https://x.com/saucelabs.",
-      "user": "standard_user",
-      "tags": ["@standard"],
+      "acText": "WHEN any authenticated user is on the inventory page, the footer shall expose a social link whose href is exactly https://x.com/saucelabs.",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
       "bucket": "Positive",
       "feature": "footer",
-      "contextLabel": "standard_user",
+      "contextLabel": "all users",
       "jira": [
         {
           "key": "SW-2",
@@ -16,66 +16,116 @@
         {
           "key": "SW-18",
           "url": "https://diegocortes15.atlassian.net/browse/SW-18"
+        },
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
         }
       ]
     },
     {
       "title": "footer Facebook link points to its Sauce Labs URL",
-      "acText": "The footer Facebook link's href is https://www.facebook.com/saucelabs.",
-      "user": "standard_user",
-      "tags": ["@standard"],
+      "acText": "WHEN any authenticated user is on the inventory page, the footer Facebook link's href shall be https://www.facebook.com/saucelabs.",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
       "bucket": "Positive",
       "feature": "footer",
-      "contextLabel": "standard_user",
+      "contextLabel": "all users",
       "jira": [
         {
           "key": "SW-2",
           "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        },
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
         }
       ]
     },
     {
       "title": "footer LinkedIn link points to its Sauce Labs URL",
-      "acText": "The footer LinkedIn link's href is https://www.linkedin.com/company/sauce-labs/.",
-      "user": "standard_user",
-      "tags": ["@standard"],
+      "acText": "WHEN any authenticated user is on the inventory page, the footer LinkedIn link's href shall be https://www.linkedin.com/company/sauce-labs/.",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
       "bucket": "Positive",
       "feature": "footer",
-      "contextLabel": "standard_user",
+      "contextLabel": "all users",
       "jira": [
         {
           "key": "SW-2",
           "url": "https://diegocortes15.atlassian.net/browse/SW-2"
-        }
-      ]
-    },
-    {
-      "title": "footer shows the Sauce Labs copyright text",
-      "acText": "The footer shows '\u00a9 2026 Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy'.",
-      "user": "standard_user",
-      "tags": ["@standard"],
-      "bucket": "Positive",
-      "feature": "footer",
-      "contextLabel": "standard_user",
-      "jira": [
+        },
         {
-          "key": "SW-2",
-          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
         }
       ]
     },
     {
       "title": "footer X link shows the label X",
-      "acText": "WHEN standard_user opens the inventory page, the footer's X social link shall display the visible text \"X\".",
-      "user": "standard_user",
-      "tags": ["@standard"],
+      "acText": "WHEN any authenticated user is on the inventory page, the footer's X social link shall display the visible text \"X\".",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
       "bucket": "Positive",
       "feature": "footer",
-      "contextLabel": "standard_user",
+      "contextLabel": "all users",
       "jira": [
         {
           "key": "SW-18",
           "url": "https://diegocortes15.atlassian.net/browse/SW-18"
+        },
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
+        }
+      ]
+    },
+    {
+      "title": "footer Facebook link shows the label Facebook",
+      "acText": "WHEN any authenticated user is on the inventory page, the footer's Facebook social link shall display the visible text \"Facebook\".",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
+      "bucket": "Positive",
+      "feature": "footer",
+      "contextLabel": "all users",
+      "jira": [
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
+        }
+      ]
+    },
+    {
+      "title": "footer LinkedIn link shows the label LinkedIn",
+      "acText": "WHEN any authenticated user is on the inventory page, the footer's LinkedIn social link shall display the visible text \"LinkedIn\".",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
+      "bucket": "Positive",
+      "feature": "footer",
+      "contextLabel": "all users",
+      "jira": [
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
+        }
+      ]
+    },
+    {
+      "title": "footer copyright line matches the browser's current year",
+      "acText": "WHEN any authenticated user is on the inventory page, the footer copyright line shall read '© <current year> Sauce Labs. All Rights Reserved. Terms of Service | Privacy Policy', where <current year> is read from the browser's own clock at the time the assertion runs rather than hardcoded.",
+      "user": "any authenticated user",
+      "tags": ["@all-users"],
+      "bucket": "Positive",
+      "feature": "footer",
+      "contextLabel": "all users",
+      "jira": [
+        {
+          "key": "SW-2",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-2"
+        },
+        {
+          "key": "SW-20",
+          "url": "https://diegocortes15.atlassian.net/browse/SW-20"
         }
       ]
     }
