@@ -50,7 +50,7 @@
         "login"
       ],
       "firstSeen": "2026-09-07",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "Access to fetch at 'https://submit.backtrace.io/UNIVERSE/TOKEN/json' from origin 'https://www.saucedemo.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
@@ -66,7 +66,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE console failure",
@@ -85,7 +85,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE from a failing test",
@@ -104,7 +104,7 @@
       "thirdParty": false,
       "count": 3,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "Sorting is broken! This error has been reported to Backtrace.",
@@ -125,7 +125,7 @@
       "thirdParty": false,
       "count": 3,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -147,7 +147,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -166,9 +166,9 @@
       "signature": "failed-request:GET:https://www.saucedemo.com/checkout-step-one.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 10,
+      "count": 16,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -190,7 +190,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -209,9 +209,9 @@
       "signature": "failed-request:GET:https://www.saucedemo.com/inventory.html:404",
       "kind": "failed-request",
       "thirdParty": false,
-      "count": 55,
+      "count": 49,
       "firstSeen": "2026-09-04",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "404",
@@ -238,7 +238,7 @@
       "thirdParty": true,
       "count": 7,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "401 Unauthorized",
@@ -259,16 +259,16 @@
       "signature": "failed-request:POST:https://events.backtrace.io/api/unique-events/submit:401",
       "kind": "failed-request",
       "thirdParty": true,
-      "count": 5,
+      "count": 7,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "401 Unauthorized",
         "url": "https://events.backtrace.io/api/unique-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "error_user logs out from the menu and returns to the login page",
+        "test": "standard_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [
@@ -284,7 +284,7 @@
       "thirdParty": false,
       "count": 1,
       "firstSeen": "2026-09-05",
-      "lastSeen": "2026-09-17",
+      "lastSeen": "2026-09-18",
       "status": "ignored",
       "sample": {
         "message": "OBSERVATION_PROBE uncaught failure",

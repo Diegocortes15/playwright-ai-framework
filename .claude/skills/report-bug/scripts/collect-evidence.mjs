@@ -22,6 +22,8 @@
 import { readFileSync, existsSync, mkdirSync, copyFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 
+import { traceToHar } from './trace-to-har.mjs';
+
 const RESULTS = join('test-results', 'results.json');
 const ANSI = new RegExp('\\u001b\\[[0-9;]*m', 'g');
 const stripAnsi = (s = '') => s.replace(ANSI, '');
@@ -76,6 +78,22 @@ for (const spec of eachSpec({ suites: report.suites ?? [] })) {
         files.push(name);
       }
 
+      // The trace already carries the network log, so pull it out as a HAR rather than making
+      // the run record one twice. A HAR opens in any browser's network panel; the trace needs a
+      // checkout. Failing to extract is not a failure to collect — the trace is still there.
+      const tracePath = join(dir, 'trace.zip');
+      if (existsSync(tracePath)) {
+        try {
+          const har = traceToHar(tracePath);
+          if (har.log.entries.length > 0) {
+            writeFileSync(join(dir, 'network.har'), JSON.stringify(har, null, 2), 'utf-8');
+            files.push('network.har');
+          }
+        } catch (error) {
+          console.error(`collect-evidence: could not extract a HAR from the trace — ${error.message}`);
+        }
+      }
+
       const message = stripAnsi(result.error?.message ?? '').trim();
       // A test.fail() test that fails as expected is not a "failure" to Playwright, so
       // `screenshot: 'only-on-failure'` and `video: 'retain-on-failure'` keep neither unless the
@@ -108,6 +126,22 @@ for (const spec of eachSpec({ suites: report.suites ?? [] })) {
           '',
           'It opens in a browser and needs no setup beyond the repository.',
           '',
+          ...(files.includes('network.har')
+            ? [
+                'The network, without a checkout',
+                '------------------------------',
+                'network.har is the same network log, extracted from that trace. Open any',
+                "browser's DevTools, go to Network, and use Import HAR — no repository, no npx.",
+                'It is the file to look at when the failure is network-shaped: a request that',
+                '404s, a resource that never loads, a payload that is wrong. It shows nothing',
+                'about a sorting bug, so it sits beside the trace rather than replacing it.',
+                '',
+                'Credential cookie and header VALUES are redacted in it; the names are kept.',
+                'Text response bodies are verbatim, so treat it as confidential as the',
+                'application it came from.',
+                '',
+              ]
+            : []),
           ...(visualsMissing
             ? [
                 'No screenshot or video — and that is fixable',

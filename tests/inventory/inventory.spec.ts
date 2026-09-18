@@ -20,7 +20,9 @@ const [backpack] = products;
 // `npx playwright show-trace` and a checkout, which puts an engineer between a BA and the bug.
 //
 // Forced on for this file only. Measured cost: +12% run time and +12 MB of artifacts. It has to
-// be file-level — `video` cannot be scoped to a describe, because it forces a new worker.
+// be file-level — `video` cannot be scoped to a describe, because it forces a new worker. The same
+// is true of `trace`, which is why the config keeps it 'on' globally rather than per-describe:
+// scoping it here fails the run outright with "Cannot use({ trace }) in a describe group".
 test.use({ screenshot: 'on', video: 'on' });
 
 // problem_user is one of saucedemo's intentionally-broken accounts: the inventory
