@@ -142,6 +142,33 @@ the elements had `data-test` attributes all along; nobody checked. A unique, sta
 fine locator; guessing that the attribute was missing is what went wrong. Note what you
 settled for, and why, for Step 12 (ADR-0022), at the moment you make the call.
 
+**Then count each locator on the OTHER pages a test can arrive from.** This is the check that
+is easy to skip and expensive to miss, because a selector can be unique on the page you are
+scaffolding and ambiguous on the page before it — and Playwright treats those two cases in
+opposite ways. Zero matches auto-waits; **many matches throw a strict-mode violation
+immediately**, which ends an `expect.poll` rather than being retried, so the test fails
+intermittently with an error that names strict mode instead of the feature.
+
+```bash
+# On the page you are scaffolding, and then on each page that navigates INTO it:
+npx playwright-cli eval "() => document.querySelectorAll('[data-test=\"inventory-item-name\"]').length"
+```
+
+`ProductDetailPage` shipped without this check. Its name, description, price and image locators
+were bound straight to `page`, and saucedemo uses the same `data-test` values for all six cards
+of the inventory grid — 6 on the grid, 1 on the detail page. It failed 3 times in 8 full-suite
+runs. Note what did not help: those selectors were already level 1, and `getByRole('heading')`
+returned 0 on that page, so the level above was worse.
+
+**Where the count is above one anywhere, scope rather than downgrade.** Bind a container that
+exists only on the destination page and hang the `data-test` children off it. Prefer a container
+with its own `data-test` — `CartPage` does this with `[data-test="cart-list"]`, which is exactly
+why the cart never had the bug — and take a CSS class when the page has none, saying which level
+you took and why in a comment. **A scoping container is not a selector downgrade**, so it does not
+belong in Step 12's downgrade list; it belongs in a comment at the call site. And never reach for
+`.first()` to make a strict-mode violation go away: that trades a correct loud error for a test
+that reads an arbitrary element.
+
 ### 9. Render the Page Object
 
 Following `references/page-object-template.md`:

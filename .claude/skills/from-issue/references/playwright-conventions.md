@@ -4,7 +4,40 @@ The `/from-issue` skill consults this doc when rendering test files (Step 7 of [
 
 ## Locator preference order
 
-Use the highest-priority locator that uniquely identifies the element. **This matches CLAUDE.md's "Selector preference order" exactly** (single source of truth). Upstream Playwright docs recommend `getByRole` first; this project prioritizes `[data-test="..."]` attributes because saucedemo (and most apps the framework targets) provide explicit testing affordances.
+**Read the rule below, not CLAUDE.md.** This section used to call CLAUDE.md the single source of
+truth for selector order. That is exactly the coupling this skill is not allowed to have: a skill
+directory is the portability boundary, so a skill lifted into another repository takes its own
+`references/` and leaves CLAUDE.md behind. The rule has to be complete here or it does not survive
+the move. Keep the two in agreement by editing both.
+
+Use the highest-priority locator that **uniquely identifies the element on the page the test is
+standing on**. Both halves of that sentence carry weight, and the second one is the half that
+actually breaks tests — see "Uniqueness outranks level" below.
+
+### How this order differs from Playwright's own, and why
+
+Playwright's documentation recommends a different order, and it is worth knowing which you are
+following. Upstream, in its own words, prefers "user-facing attributes and explicit contracts":
+`getByRole`, then `getByText`, `getByLabel`, `getByPlaceholder`, `getByAltText`, `getByTitle`, and
+`getByTestId` **last**. CSS and XPath are not on that list at all; the docs call them "not
+recommended, as the DOM can often change leading to non resilient tests". The reasoning comes from
+Testing Library, which groups queries by who can perceive them and places test ids last because
+"the user cannot see (or hear) these".
+
+This project inverts the top slot deliberately. A role or text locator is a bet on copy, and copy
+moves: translation, a marketing rewrite, an A/B test. A `data-test` attribute is a contract written
+for the test and changed on purpose. That bet pays off for an app with thorough `data-test`
+coverage, which saucedemo has.
+
+**If you point this framework at an app without that coverage, start from Playwright's order
+instead.** Do not force `data-test` onto an app that has none — that is how you end up asking a
+team to instrument their DOM to suit a test suite, which is a real cost and sometimes the wrong
+trade. Record which order the project follows and why, and the rest of this file still applies
+unchanged, because the failure modes below are about uniqueness, not about levels.
+
+**`id` and `name` are not levels of this hierarchy.** They are CSS (`#submit`, `[name="email"]`).
+Playwright has no `getById`. A unique, stable id is a perfectly good locator — it just sits at the
+CSS level, not above it.
 
 ### 1. `[data-test="..."]` attribute selectors
 
@@ -12,7 +45,7 @@ Use the highest-priority locator that uniquely identifies the element. **This ma
 await page.locator('[data-test="login-button"]').click();
 ```
 
-Explicit testing affordance. CLAUDE.md's required default. Survives styling changes; brittle only if someone removes the attribute (which a code reviewer would catch).
+Explicit testing affordance, and this project's default. Survives styling changes; brittle only if someone removes the attribute (which a code reviewer would catch) — or if it is not unique on the page being read, which is the failure this file's "Uniqueness outranks level" section exists for.
 
 ### 2. `getByRole(name, options)` with accessible name
 
@@ -32,13 +65,83 @@ await page.getByText('Login').click();
 
 When neither `data-test` nor an accessible role is exposed but a human-visible label exists.
 
-### 4. CSS selectors (last resort)
+### 4. CSS selectors (last resort as a *target*)
 
 ```ts
 await page.locator('.btn-primary').click();
 ```
 
-Brittle. Use only when nothing above works. NEVER use XPath in this project (per CLAUDE.md "What to NEVER do").
+Brittle as the thing you are clicking or reading, because a class name is a styling decision and
+styling changes. Use only when nothing above works.
+
+**A CSS class used as a scoping container is a different thing and is not a downgrade.** See the
+next section: `this.detail = page.locator('.inventory_details')` exists to answer "which page am I
+on", not "which button do I click". The child locators under it stay `data-test`. Do not avoid this
+because the word CSS appears.
+
+**Never XPath.** `no-restricted-syntax` in `eslint.config.js` fails the build outright — XPath
+encodes document structure, so it breaks on layout changes that touch nothing else. This is the one
+level that is a gate rather than guidance.
+
+## Uniqueness outranks level
+
+A locator's level does not protect it. **What breaks tests is matching the wrong number of
+elements**, and that count depends on which page the browser is actually showing when the read
+happens.
+
+The asymmetry that turns this into a failure rather than a retry:
+
+| The locator resolves to | Playwright does |
+| ----------------------- | --------------- |
+| **zero** elements | auto-wait, then resolve — harmless |
+| **one** element | act |
+| **many** elements | throw a strict-mode violation **immediately** |
+
+A throw is not a failed assertion. `expect.poll` retries a value it *receives*; an exception ends
+the poll. So a locator that is ambiguous for even a few milliseconds fails the test outright,
+intermittently, and the error names strict mode rather than anything about the feature.
+
+### The worked example this rule came from
+
+`product_detail.spec.ts` failed 3 times in 8 full-suite runs with
+`strict mode violation: locator('[data-test="inventory-item-name"]') resolved to 6 elements`.
+
+saucedemo reuses the same `data-test` values for a detail page's fields and for every card in the
+inventory grid. Counted live, waiting for a marker unique to each destination before counting:
+
+| `data-test` | inventory | detail |
+| ----------- | --------- | ------ |
+| `inventory-item-name` | **6** | 1 |
+| `inventory-item-desc` | **6** | 1 |
+| `inventory-item-price` | **6** | 1 |
+| `[data-test$="-img"]` | **6** | 1 |
+
+`ProductDetailPage` bound all four to `page`, unscoped, and `openProductDetail` returns as soon as
+the click lands. A read that arrived before the detail page replaced the grid resolved against six
+cards. Note what did **not** help: the selector was already level 1, and `getByRole('heading')`
+returned **0** on that page, so the level above would have been worse.
+
+The fix was to scope all four to a container that exists **only** on the detail page. On the grid
+the container matches nothing, so the child matches nothing, and the read auto-waits. `CartPage`
+already did this with `[data-test="cart-list"]`, which is why the cart never had the bug despite
+using the same ambiguous attributes.
+
+### What to do when you write a locator
+
+1. **Count it on the page it belongs to.** One match is the answer you want.
+2. **Count it on the pages a test arrives from.** If it matches more than one anywhere a test can
+   be standing when it reads, it needs scoping — not a different level.
+3. **Scope to a container unique to the destination page**, at the highest level that gives you
+   one. Prefer a container with its own `data-test`; take a CSS class when there is none, and say
+   so at the call site. Naming the level and the reason in a comment is the requirement, not
+   apologising for it.
+4. **Never reach for `.first()` or `.nth(0)` to silence a strict-mode violation.** That converts a
+   loud, correct error into a test that passes while reading an arbitrary element. If the count is
+   wrong, the locator is wrong.
+
+The same reasoning applies to a suffix or prefix match: `[data-test$="-img"]` looked unique on the
+detail page and matched six on the grid. A partial-attribute match is a bet on what else exists,
+and it needs the same two counts as anything else.
 
 ## Web-first assertions (auto-retrying)
 

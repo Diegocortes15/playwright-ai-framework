@@ -28,7 +28,8 @@ export class <Name>Page {
   constructor(public readonly page: Page) {
     // Wire components first
     this.header = new Header(page);
-    // Then page-direct locators (data-test preferred per CLAUDE.md selector preference order)
+    // Then page-direct locators (data-test preferred; scope to a page-unique container when
+    // the bare selector is ambiguous on a page a test arrives from)
     this.pageTitle = page.locator('[data-test="title"]');
     this.continueButton = page.getByRole('button', { name: /^Continue$/i });
   }
@@ -63,12 +64,30 @@ export class <Name>Page {
 ## Rules
 
 - **Comment block at top** — mandatory; copy verbatim with YYYY-MM-DD replaced by today's date
-- **Selector preference order** (per CLAUDE.md):
+- **Selector preference order:**
   1. `[data-test="..."]` attribute
   2. `getByRole(...)` with anchored regex like `/^Continue$/i`
   3. Text matchers
-  4. CSS selectors (last resort)
-  5. Never XPath
+  4. CSS selectors (last resort as a target; see the scoping note below, where CSS is fine)
+  5. Never XPath — this one fails the build, the rest are judgment
+- **Uniqueness outranks level, and it is checked per page.** A locator's level does not protect it;
+  matching the wrong number of elements does the damage. Playwright auto-waits on **zero** matches
+  and throws a strict-mode violation immediately on **many** — and a throw ends an `expect.poll`
+  instead of being retried, so an ambiguous locator fails the test outright and intermittently.
+  Count every locator twice: once on the page it belongs to, and once on the pages a test arrives
+  from. This cost the framework a real flake — `ProductDetailPage` bound
+  `[data-test="inventory-item-name"]` (and `-desc`, `-price`, `[data-test$="-img"]`) straight to
+  `page`, and saucedemo uses those same attributes for all six cards of the inventory grid, so a
+  read that landed early resolved to six.
+- **Scope page-direct locators to a container unique to that page when the bare selector is
+  ambiguous anywhere a test can arrive from.** Prefer a container carrying its own `data-test`
+  (`CartPage` uses `[data-test="cart-list"]`, which is why the cart never had that bug); take a CSS
+  class when the page offers none (`ProductDetailPage` uses `.inventory_details`) and say which
+  level you took and why in a comment beside it. A CSS container is not a selector downgrade — it
+  answers "which page is this", not "which element do I act on", and the children under it stay
+  `data-test`.
+- **Never use `.first()` or `.nth(0)` to quiet a strict-mode violation.** It turns a correct, loud
+  error into a test that silently reads an arbitrary element. A wrong count means a wrong locator.
 - **Field order** — composed components first, then page-direct locators (ADR-0001 rule #6)
 - **Constructor wiring order** — same as field order
 - **Action method naming** — start from element's accessible name, normalize to camelCase, strip filler words (`to`, `the`, `and`, `a`, `of`), favor brevity (`"Continue to Checkout"` → `clickContinue`)
