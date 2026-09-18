@@ -5,7 +5,7 @@
 // Manual edits are welcome — this file is not regenerated automatically.
 // Re-running /from-issue against a contributing issue will refuse to overwrite.
 
-import { test, expect } from '@fixtures/test';
+import { test, expect, type SeedCart } from '@fixtures/test';
 import { products } from '@data/fixtures';
 import type { InventoryPage } from '@pages/InventoryPage';
 import type { CartPage } from '@pages/CartPage';
@@ -28,10 +28,33 @@ const CART_PRODUCTS = CART_PRODUCT_NAMES.map((name) => {
   return product;
 });
 
-// Shared SW-9 precondition: add the three products in order, then advance through
-// the information step to land on Checkout: Overview. Kept a plain helper (not a
-// fixture) since it drives several pages and only the overview tests need it.
+// Shared SW-9 precondition: land on Checkout: Overview with the three products in the cart.
+//
+// The cart is SEEDED. Each test using this asserts something about the overview screen or
+// about leaving it — none is about adding to a cart — so the nine UI actions it used to take
+// were setup, shared by six tests. The cost was never the seconds: it was that changing the
+// "Add to cart" button turned six overview tests red for something they do not test.
 async function reachCheckoutOverview(
+  seedCart: SeedCart,
+  checkoutInfoPage: CheckoutInfoPage,
+): Promise<void> {
+  await seedCart(CART_PRODUCT_NAMES);
+  await checkoutInfoPage.goto();
+  await checkoutInfoPage.fillInformation(
+    VALID_INFO.firstName,
+    VALID_INFO.lastName,
+    VALID_INFO.postalCode,
+  );
+  await checkoutInfoPage.clickContinue();
+}
+
+// The same destination, reached the way a customer reaches it. Used by the @smoke test only.
+//
+// Smoke is build verification: its job is to fail when the purchase journey is broken. A
+// smoke test that seeded its cart would pass with the "Add to cart" button dead, which is
+// exactly the regression the tier exists to catch. Seeding is for setup; here the journey IS
+// the subject.
+async function reachCheckoutOverviewByClicking(
   inventoryPage: InventoryPage,
   cartPage: CartPage,
   checkoutInfoPage: CheckoutInfoPage,
@@ -140,12 +163,11 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     // AC 1 + AC 7 (SW-9): the overview lists each cart product — in the order it
     // was added — with its name, quantity, description, and price.
     test('overview lists the three products in cart order with name, quantity, description, and price', async ({
-      inventoryPage,
-      cartPage,
+      seedCart,
       checkoutInfoPage,
       checkoutOverviewPage,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
 
       await expect
         .poll(() => checkoutOverviewPage.getProductNames())
@@ -161,12 +183,11 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
 
     // AC 2 + AC 3 (SW-9): the payment and shipping information sections show their values.
     test('overview shows the payment and shipping information', async ({
-      inventoryPage,
-      cartPage,
+      seedCart,
       checkoutInfoPage,
       checkoutOverviewPage,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
 
       await expect.poll(() => checkoutOverviewPage.getPaymentInfo()).toBe('SauceCard #31337');
       await expect
@@ -178,12 +199,11 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     // and the order total for the three-item cart ($29.99 + $9.99 + $15.99 = $55.97;
     // tax = round($55.97 * 0.08) = $4.48; total = $60.45).
     test('overview shows the item total, tax, and order total', async ({
-      inventoryPage,
-      cartPage,
+      seedCart,
       checkoutInfoPage,
       checkoutOverviewPage,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
 
       await expect.poll(() => checkoutOverviewPage.getItemTotalText()).toBe('Item total: $55.97');
       await expect.poll(() => checkoutOverviewPage.getTaxText()).toBe('Tax: $4.48');
@@ -192,13 +212,13 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
 
     // AC 8 (SW-9): the header cart icon is displayed and returns to the Cart page.
     test('cart icon on the overview navigates to the Cart page', async ({
-      inventoryPage,
+      seedCart,
       cartPage,
       checkoutInfoPage,
       checkoutOverviewPage,
       page,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
 
       await expect(checkoutOverviewPage.cartIcon).toBeVisible();
       await checkoutOverviewPage.openCart();
@@ -220,7 +240,7 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
         checkoutCompletePage,
         page,
       }) => {
-        await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+        await reachCheckoutOverviewByClicking(inventoryPage, cartPage, checkoutInfoPage);
 
         await expect(checkoutOverviewPage.finishButton).toBeVisible();
         await checkoutOverviewPage.finish();
@@ -361,13 +381,13 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     // AC 9 (SW-9): Cancel on the overview returns to the inventory page and leaves
     // the three products in the cart (the order isn't discarded).
     test('cancel on the overview returns to the inventory page and keeps the cart', async ({
+      seedCart,
       inventoryPage,
-      cartPage,
       checkoutInfoPage,
       checkoutOverviewPage,
       page,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
 
       await checkoutOverviewPage.cancel();
 
@@ -378,14 +398,14 @@ test.describe('checkout — standard_user', { tag: '@standard' }, () => {
     // AC 14 (SW-9): after finishing, Back Home returns to the inventory page and
     // resets the cart — the badge count disappears.
     test('back home after finishing clears the cart and returns to the inventory page', async ({
+      seedCart,
       inventoryPage,
-      cartPage,
       checkoutInfoPage,
       checkoutOverviewPage,
       checkoutCompletePage,
       page,
     }) => {
-      await reachCheckoutOverview(inventoryPage, cartPage, checkoutInfoPage);
+      await reachCheckoutOverview(seedCart, checkoutInfoPage);
       await checkoutOverviewPage.finish();
       await expect(page).toHaveURL(/\/checkout-complete\.html$/);
 

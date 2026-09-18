@@ -236,6 +236,34 @@ this.productNames.filter({ hasText: productName });
 
 Prefer `getByText(name, { exact: true })` or an anchored regex. Substring `filter({ hasText })` is fine only when matching a _group_ deliberately (e.g. "all cards mentioning 'Sauce'").
 
+## Reaching the state a test starts from
+
+Before rendering a test, decide for each precondition: **is getting there the subject, or is
+it setup?**
+
+- **The acceptance criterion names the action** → drive it through the UI. A test that seeds
+  the cart and then asserts adding to the cart works has asserted nothing.
+- **The criterion assumes the action and describes what comes after** → seed the state. The
+  `seedCart` fixture writes saucedemo's `cart-contents` key through
+  `context.addInitScript`, which is what the add-to-cart button does anyway.
+
+Read the criterion's own words. *"adding three products shows a badge of three"* names the
+action. *"the overview shows the item total"* assumes it.
+
+The suite already works this way for authentication and nobody calls it seeding: 58 tests
+start logged in because `storageState` injects the session, and the 26 that TEST logging in
+still fill the form. This is the same rule applied to the cart.
+
+**It is not about speed.** Measured on saucedemo, seeding the cart saves about 80ms against
+nine UI actions. What it buys is that changing the "Add to cart" button stops turning six
+overview tests red for something they do not test.
+
+**`@smoke` is the exception.** A smoke test's job is to fail when the critical journey is
+broken, so it walks the journey even when its assertion is about the screen at the end. One
+checkout test keeps its clicks for exactly this reason — seeding it would let smoke pass with
+the purchase flow dead, which is the regression that tier exists to catch.
+
+Seed before the first navigation: an init script only affects pages loaded after it is added.
 ## Network interception
 
 Everything below was settled by SW-19, the first ticket that needed it. Its run reported
