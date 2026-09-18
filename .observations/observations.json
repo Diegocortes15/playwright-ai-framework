@@ -259,7 +259,7 @@
       "signature": "failed-request:POST:https://events.backtrace.io/api/unique-events/submit:401",
       "kind": "failed-request",
       "thirdParty": true,
-      "count": 7,
+      "count": 5,
       "firstSeen": "2026-09-05",
       "lastSeen": "2026-09-17",
       "status": "ignored",
@@ -268,7 +268,7 @@
         "url": "https://events.backtrace.io/api/unique-events/submit?universe=UNIVERSE&token=TOKEN",
         "method": "POST",
         "httpStatus": 401,
-        "test": "standard_user logs out from the menu and returns to the login page",
+        "test": "error_user logs out from the menu and returns to the login page",
         "project": "chromium-no-auth"
       },
       "seenIn": [
