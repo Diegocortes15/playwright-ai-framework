@@ -33,6 +33,7 @@ The full procedural workflow is in [`references/workflow.md`](references/workflo
 
 - [`scripts/collect-failure.mjs`](scripts/collect-failure.mjs) — gathers the failure, its evidence, its acceptance criterion and its observations into structured JSON. Plain Node, no dependencies. Locating facts is lookup, not judgment, so it is a script rather than prose.
 - [`scripts/collect-evidence.mjs`](scripts/collect-evidence.mjs) — copies that failure's screenshot, video and trace into one readable folder under `bug-evidence/`, with a `README.txt` carrying the error and how to open the trace. Copies only; the run output is never moved or deleted.
+- [`scripts/trace-to-har.mjs`](scripts/trace-to-har.mjs) — extracts the network log out of that trace as a `network.har`, which opens in any browser's DevTools under Network → Import HAR. An extraction, not a recording: the trace already holds the log, so turning on `recordHar` would write the same bytes twice. Credential cookie and header values are redacted; text response bodies are verbatim. Called by `collect-evidence.mjs`, and runnable on its own against any trace.
 
 ## Scope
 

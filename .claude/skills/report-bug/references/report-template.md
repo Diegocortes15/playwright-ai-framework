@@ -33,12 +33,17 @@ reports should find the same thing in the same place every time.
 
 ## Evidence
 
-**Attach:** `<bug-evidence/<slug>--<project>/>` — screenshot, video, trace and a README with the
-error and how to open the trace. Collected by Step 1.5; drag the folder onto the ticket, or zip
-it with the command that step prints.
+**Attach:** `<bug-evidence/<slug>--<project>/>` — screenshot, video, trace, a `network.har`
+extracted from that trace, and a README with the error and how to open both. Collected by
+Step 1.5; drag the folder onto the ticket, or zip it with the command that step prints.
 
 - Failing test: `<file>:<line>` — `<title>`
 - Trace, once attached: `npx playwright show-trace trace.zip`
+- Network, without a checkout: open `network.har` in DevTools → Network → Import HAR
+
+Name `network.har` in the report only when the failure is network-shaped — a request that 404s, a
+resource that never loads, a wrong payload. Pointing a reader at it for a sorting bug wastes
+their time, and the folder carries it either way.
 
 ## Runtime observations during this test
 

@@ -41,7 +41,8 @@ node .claude/skills/report-bug/scripts/collect-evidence.mjs [--grep "<substring>
 `inventory-inventory-invent-6da45-products-by-price-ascending-chromium-problem`, under absolute
 paths on the machine that ran the suite. A report listing those paths has, in practice, **no
 evidence at all**: nobody else can open them, and whoever filed it cannot easily find them
-either. This turns that into one folder with `screenshot.png`, `video.webm`, `trace.zip` and a
+either. This turns that into one folder with `screenshot.png`, `video.webm`, `trace.zip`, a
+`network.har` extracted from that trace, and a
 `README.txt` — a single thing to drag onto a ticket.
 
 **Exit 5 is worth reading rather than retrying.** It means `results.json` describes a failure

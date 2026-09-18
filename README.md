@@ -98,11 +98,13 @@ Observations **never fail a test** — the fixture records, it never judges ([AD
 
 ### 4. The full picture — DOM, network, console, step by step
 
-`trace: 'on'` means **every** test has a trace, not just failures. In the HTML report, click a test → **Traces** for an inline timeline with DOM snapshots at every action.
+A failing test keeps a trace (`trace: 'retain-on-failure'`). In the HTML report, click a test → **Traces** for an inline timeline with DOM snapshots at every action.
+
+The trace also carries the full network log, so `/report-bug` extracts it as a `network.har` — openable in any browser's DevTools under Network → Import HAR, with no checkout and no `npx`. It is an extraction, not a second recording: turning on `recordHar` would write the same bytes twice.
 
 ### 5. Turn a failure into a bug report draft
 
-With Claude Code: **`/report-bug`**. It assembles repro steps, the acceptance criterion the test traces to, expected vs. actual, correlated observations, and copies the screenshot, video and trace into one attachable folder. **It files nothing** — you read the draft and decide.
+With Claude Code: **`/report-bug`**. It assembles repro steps, the acceptance criterion the test traces to, expected vs. actual, correlated observations, and copies the screenshot, video, trace and a `network.har` extracted from that trace into one attachable folder. **It files nothing** — you read the draft and decide.
 
 ---
 
@@ -210,12 +212,16 @@ flowchart TD
 
 | Artifact    | When       | Config                          |
 | ----------- | ---------- | ------------------------------- |
-| Trace       | every test | `trace: 'on'`                   |
+| Trace       | on failure | `trace: 'retain-on-failure'`    |
 | Screenshot  | on failure | `screenshot: 'only-on-failure'` |
 | Video       | on failure | `video: 'retain-on-failure'`    |
 | HTML report | every run  | `reporter: [['html', …]]`       |
 
-`trace: 'on'` buys always-on debuggability at the cost of larger artifacts — a deliberate trade. From CI, download the **`playwright-report`** artifact and run `npx playwright show-report ./playwright-report`; the traces are bundled inside.
+This used to be `trace: 'on'` — a trace for every test, pass or fail. Measured on the standard project (58 tests, three runs each), recording cost no run time above the noise floor, but it left **61 MB across 91 trace files** that every green run uploaded for nobody to read. `'retain-on-failure'` rather than `'on-first-retry'`, because retries are 0 locally and `'on-first-retry'` would mean no trace at all on a developer's machine.
+
+One file opts back in: `tests/inventory/inventory.spec.ts` sets `trace: 'on'` alongside `screenshot: 'on'` and `video: 'on'`, because Playwright does not count a `test.fail()` test's expected failure as a failure — so the tests locked to a known defect, the ones whose evidence someone outside the repository most needs, would otherwise capture nothing.
+
+From CI, download the **`playwright-report`** artifact and run `npx playwright show-report ./playwright-report`; the traces are bundled inside.
 
 ---
 

@@ -70,7 +70,13 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.SAUCEDEMO_BASE_URL ?? 'https://www.saucedemo.com',
-    trace: 'on', // always record a trace, so the trace viewer has data for every test (pass or fail)
+    // Keep a trace for failures only. Measured on the standard project (58 tests, 3 runs each):
+    // recording costs no time above the noise floor — trace=off came out SLOWER than trace=on in
+    // the second measurement — but `trace: 'on'` left 61 MB across 91 trace files, which every
+    // green run uploads as an artifact for nobody. 'retain-on-failure', not 'on-first-retry':
+    // retries are 0 locally, so 'on-first-retry' would mean no trace at all on a developer's
+    // machine, which is where a trace gets read most.
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10_000,
