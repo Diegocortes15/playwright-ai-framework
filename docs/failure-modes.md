@@ -81,8 +81,23 @@ The credible half of this page. Each of these happened, was found, and has somet
 | **A race one browser was fast enough to hide.** `InventoryPage.goto()` returned before the product list rendered; ten tests read a list on the next line. Chromium always won that race; WebKit lost it one run in five                                                                                                                                                    | Since the Page Object existed                                             | The wait lives in the Page Object. And cross-browser is what surfaced it — on its first real use ([ADR-0027](adr/0027-cross-browser-opt-in.md))  |
 | **A test with an `expect` that still could not fail for its stated reason.** On the cart page with one product the badge and the row quantity both read `1`, so an assertion on the badge count passes whichever element the locator resolved to. Playwright's strict mode is satisfied — the locator matches exactly one element, and it is the _value_ that is ambiguous | Structural; found by querying the DOM for duplicate text, not by any gate | Nothing automated. A mandatory pull-request section naming how each test could pass while being wrong, what ruled it out, and **what did not**   |
 | **A pull request merged into an already-merged branch.** SW-12's work never reached `main`                                                                                                                                                                                                                                                                                 | Minutes                                                                   | `sync-base-branch.sh` refuses to run on a previous ticket's branch or a stale base                                                               |
+| What broke                                                                                                                                                                                                                                                                                                                                                                 | How long it went unnoticed                                                | What catches it now                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                       | --------------------------------------------                              | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A base branch whose own pull request was already merged.** Step 1.5 returned 0 and named a finished branch as the base, because the refusal only recognised a previous _ticket's_ branch. A squash merge leaves that branch looking healthy locally — nothing in git says it is done                                                                                     | Caught in the run that hit it (PR #118)                                   | `sync-base-branch.sh` exit 13, which asks GitHub rather than git. Verified against a merged branch (13) and `main` (0)                           |
 
-The pattern worth naming: **six of the seven are documentation or records drifting from reality, not code defects.** That is what this framework's gates are mostly for.
+The pattern worth naming, and it is shifting. When this table held seven rows, most of them were
+**documentation or records drifting from reality rather than code defects** — an ADR that said one
+thing while the config did another, a reference table that no longer matched the code, a documented
+command that could not run, an observation listed forever after its cause was fixed. That is what
+this framework's gates were mostly built for, and those four still have gates.
+
+At nine rows the largest single group is still drift, but it is no longer most of them. The two
+newest are a different class: a test that **had** an assertion and still could not fail for its
+stated reason, and a tooling gap where a check refused the wrong set of branches. Neither is a
+document going stale, and neither has a gate — the first because no static check can know how many
+elements a selector will match at run time, the second because it now does have one. Worth
+re-reading this paragraph rather than trusting it the next time a row is added; the count in it has
+been wrong before.
 
 ---
 
