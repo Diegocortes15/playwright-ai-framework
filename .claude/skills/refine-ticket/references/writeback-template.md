@@ -17,7 +17,31 @@ So Markdown gives you `rule`, `blockquote`, `table`, headings, lists and the usu
 
 **Verified by writing them through this MCP:** `editJiraIssue` with `contentFormat: "adf"` stored a `panel` with only `{"panelType": "info"}` and `status` lozenges with `color` set, and reading back with `responseContentFormat: "adf"` returned both intact — **no `localId` needed**, so do not invent one. The write stays inside `editJiraIssue`, which is what keeps ADR-0013's `allowed-tools` guard meaningful; do not reach for `curl` and the REST API to get ADF.
 
-> **Read and verify in ADF too.** `editJiraIssue` echoes the updated issue back in **Markdown** unless you ask otherwise, and that echo is lossy in exactly the ways above: the panel comes back as a plain bold paragraph and each lozenge as `<custom data-type="status" data-id="id-0">`. Nothing was lost in the ticket — only in the echo. So pass `responseContentFormat: "adf"` when you read, and never conclude from the Markdown echo that the write failed.
+> **Never conclude from a Markdown response that the write failed — and do not expect a read to
+> give you ADF.** `editJiraIssue` echoes the updated issue back in **Markdown**, and that echo is
+> lossy in exactly the ways above: the panel comes back as a plain bold paragraph and each lozenge
+> as `<custom data-type="status" data-id="id-0">`. Nothing was lost in the ticket — only in the
+> echo.
+>
+> An earlier version of this line told you to pass `responseContentFormat: "adf"` on the read to
+> get around that. **Measured on 2026-10-07, that does not work on this MCP build.** `getJiraIssue`
+> with `responseContentFormat: "adf"` returns Markdown anyway — verified on two tickets, with and
+> without a `fields` projection, including SW-19 whose description genuinely contains `status`
+> nodes. They came back as `<custom data-type="status" data-id="id-0">IF…THEN</custom>` inside a
+> Markdown string, not as a `doc`.
+>
+> **So verify a write by its stored effect, using the fallback as the proof.** The presence of
+> `<custom data-type="status" …>` in the response is exactly what tells you the ADF node is in the
+> ticket — a Markdown write could not have produced it, because markdown→ADF cannot make one. That
+> marker is the signal, not a `doc` object you will not receive.
+>
+> A sibling repository reported the opposite — that the correct read parameter returns a `doc`, and
+> that the trap is sending `contentFormat` (the WRITE parameter) on a read, where it is silently
+> dropped. That did not reproduce here. The MCP is a hosted service whose behaviour can differ by
+> build, so both observations may be true of different builds; this one is what this repository
+> measured. **Re-measure before trusting either, and do not conclude the server cannot produce ADF
+> from a read that came back as Markdown — that conclusion once caused a whole write-back section
+> to be rebuilt in Markdown as a workaround, degrading it.**
 
 > **No HTML-comment sentinels.** `<!-- … -->` is stored as visible literal text, not a hidden marker. The managed section is bounded by a visible `rule` + heading, which renders cleanly and gives a reliable anchor.
 
