@@ -64,11 +64,15 @@ fast-forwards it onto its remote. It never forces and never auto-merges.
 | ---- | ------- |
 | 0 | `$base` holds the resolved branch — continue |
 | 10 | You are on a previous ticket's branch. **Ask the user** which branch `<KEY>` should branch from, check it out, re-run. Never guess |
-| 11 | Working tree is dirty. Abort with the script's message — it names the dirty paths, splitting modified-but-committed from untracked, and says an earlier aborted run leaves exactly this |
+| 11 | Working tree is dirty. Abort with the script's message — it names the dirty paths, splitting modified-but-committed from untracked, and names **both** causes: an earlier aborted run, or work that is not this skill's at all. Do not assume it is your own wreckage |
 | 12 | The base diverged from its remote. Abort with the script's message |
+| 13 | The base's own pull request is already merged, so it leads nowhere. Abort; the message names the PR number. Needs `gh`, and skips silently without it |
 
-Exit 10 is the one case that needs a person: the script can tell that the current branch is a
-prior run's, but not which base was intended.
+Exits 10 and 13 both need a person: the script can tell that the current branch is unusable as
+a base, but not which base was intended. 13 exists because a squash merge leaves the finished
+branch looking perfectly healthy locally — its commits are folded into one commit on `main`, so
+`git log` shows nothing wrong and git's own merged-ness check says it is not merged. Only GitHub
+knows, which is why this one asks it.
 
 ### 2. Fetch the ticket
 

@@ -38,6 +38,21 @@ The `/from-issue` skill writes its PR body using this template. Section order is
   - `<test title 2>` — ✅ PASS
 - 🗂️ **TCMS records:** `.tcms/records/<KEY>.json` written + committed (Qase syncs at merge — see ADR-0017).
 
+## Could these tests pass while being wrong?
+
+**Mandatory, and never omitted — "nothing to report" is itself an answer that has to be written.**
+One entry per test, three parts, per `playwright-conventions.md`:
+
+- `<test title>` — **could be wrong by:** `<the way it could pass without the behaviour holding>` · **ruled out by:** `<what you did — a state where the candidates differ, deleting the Act and running once, verifying a collection with several items, …>` · **not ruled out:** `<what remains, or "nothing">`
+
+The third part is the one that matters and the one to resist trimming. A test that ships with
+`not ruled out: the locator could be reading the row quantity instead of the badge` is more useful
+than one that ships with a tick, because the reviewer gets to decide whether that is acceptable.
+Deciding it yourself is the thing this section exists to prevent.
+
+Pick the method per test. A fixed checklist answered by reflex is nearly as useless as no
+checklist, which is why this is not phrased as yes/no questions.
+
 ## Notes for reviewer
 
 (omit this section entirely if no notes)

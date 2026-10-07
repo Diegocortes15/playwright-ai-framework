@@ -2,6 +2,24 @@
 
 On approval (workflow Step 7), `/refine-ticket` writes the hardened result into the Jira **description**, then posts an audit comment via `addCommentToJiraIssue`. Per ADR-0013 this is the only Jira mutation, and only on human approval.
 
+## The `OBSERVED` marker
+
+A criterion that came from reading the live application carries `OBSERVED` and its date, inline,
+before the criterion text:
+
+```
+<status lozenge>  OBSERVED 2026-10-07 (production)  AC 2: WHEN the password is wrong, THEN the
+login form shall show "Epic sadface: Username and password do not match any user in this service".
+```
+
+Why it is on the ticket and not only in a commit message: in three months a reader cannot tell a
+line that records a product decision from one that records what somebody saw on a screen. Those
+fail differently. If the application changes, an `OBSERVED` line is the first place to look, and an
+un-marked line is a decision somebody made on purpose and should not be quietly re-measured.
+
+The marker is **not** a lower status. The person at the approval gate promoted it, so it is a
+criterion like any other. It records provenance, not confidence.
+
 ## Write ADF, not Markdown — and here is why
 
 Jira descriptions are ADF. `editJiraIssue` accepts `contentFormat: "markdown"` and converts, but the conversion **cannot produce a panel**, which was measured rather than assumed:
