@@ -34,6 +34,15 @@ Score the **whole ticket** (Feature + every AC). Treat each AC independently for
     first written as characterization of a broken sort, which would have locked in the defect as
     expected behaviour; rewritten as intended behaviour, it correctly blocked and produced SW-17.
 
+    **A third state exists and must not be collapsed into the other two: `observed`.** When a gap
+    was closed by reading the live application — permitted only for a reference that already
+    exists, per `sources.md` — the fact is an observation until a person promotes it. It reaches
+    the approval gate labelled, and the write-back marks it `OBSERVED`. The reason to keep it
+    separate is that an observation promoted without anyone noticing is exactly the SW-16 failure
+    with an extra step: a defect becomes expected behaviour, and the provenance that would have
+    caught it was never written down. `observed` says where the line came from; `intended` versus
+    `currently does` says what it claims.
+
 ## EARS — the shape an AC takes
 
 [EARS](https://alistairmavin.com/ears/) (Easy Approach to Requirements Syntax, Mavin et al., Rolls-Royce, 2009) constrains a requirement to a trigger, a system, and one response. Five patterns; the first two carry almost all the traffic here.

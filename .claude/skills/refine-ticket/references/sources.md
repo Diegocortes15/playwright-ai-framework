@@ -15,7 +15,36 @@
 5. **Framework judgment** — `CLAUDE.md`, `from-issue/references/bucket-classification.md`, `from-issue/references/smoke-policy.md`, `from-issue/references/qa-analysis.md`.
 6. **User-supplied** — anything the user points at mid-loop (next section).
 
-> **Not a source: the live app.** `/refine-ticket` never drives a running app (no `playwright-cli`). Refinement is **shift-left** — it must work for a ticket whose feature isn't built yet. Exact selectors and live strings are confirmed by `/from-issue` at generation time, never baked into the ticket. Any fact the ticket / docs / existing automation don't carry is asked of the user.
+7. **The live app — but only for a reference that already exists.** See below; this is bounded,
+   not open.
+
+> **The live app, and the one question that bounds it.** Refinement is **shift-left**: it must work
+> for a ticket whose feature is not built yet, and asking an application what a NEW requirement
+> should be is writing the specification from the implementation, defects included — it produces
+> acceptance criteria that cannot fail. So the bound is a single question: **does the thing the
+> ticket references already exist?**
+>
+> - **Yes** — "the same error as the login screen", "reuse the cart's empty state", "this
+>   component, on the new page". The app **is** the reference the ticket names. Ask permission,
+>   open that screen, record what you saw.
+> - **No** — the app is not consulted at all.
+>
+> Four rules bound the reading, and they are the reason this is safe rather than convenient:
+>
+> 1. **Every reading is an observation, not a criterion.** It carries its date and the environment
+>    it was taken in, reaches the approval gate marked `observed`, and becomes a criterion only
+>    because a person promoted it. The write-back marks it `OBSERVED`.
+> 2. **Read, never act.** No form submissions, no state any team cares about.
+> 3. **A contradiction is a finding.** When the app disagrees with the ticket or with `docs/app/`,
+>    report it; never absorb it as an input.
+> 4. **Selectors never enter a ticket.** Exact selectors and live strings stay `/from-issue`'s job
+>    at generation time.
+>
+> A missing environment is not a failure: say the reference could not be verified, and ask.
+>
+> An earlier version of this file prohibited the app outright, giving "no `playwright-cli`" as the
+> reason — which was false, the skill has existed since ADR-0006. The shift-left half of that
+> reasoning was right and is kept above. ADR-0033 records the scoping.
 
 ## User-supplied-source protocol
 

@@ -1,7 +1,7 @@
 ---
 name: refine-ticket
 description: Iteratively harden a Jira automation ticket against a "bulletproof" rubric — grounded in existing automation, app docs, and user-supplied sources — then write the refined acceptance criteria back to the ticket on approval, so /from-issue has nothing left to guess.
-allowed-tools: Read Glob Grep mcp__atlassian__getAccessibleAtlassianResources mcp__atlassian__getJiraIssue mcp__atlassian__editJiraIssue mcp__atlassian__addCommentToJiraIssue mcp__atlassian__getConfluencePage mcp__atlassian__searchConfluenceUsingCql
+allowed-tools: Read Glob Grep Bash(npx:*) mcp__atlassian__getAccessibleAtlassianResources mcp__atlassian__getJiraIssue mcp__atlassian__editJiraIssue mcp__atlassian__addCommentToJiraIssue mcp__atlassian__getConfluencePage mcp__atlassian__searchConfluenceUsingCql
 ---
 
 # refine-ticket
@@ -24,6 +24,14 @@ During the loop, when asked about a gap you can either answer directly or point 
 
 The full procedural workflow is in [`references/workflow.md`](references/workflow.md). Read that file before executing the skill.
 
+> **Why `Bash(npx:*)` is in `allowed-tools`:** Step 5a may read the live application when the ticket
+> references something that **already exists**, through the `playwright-cli` skill — always
+> `npx playwright-cli`, since the binary lives in `node_modules/.bin` and not on `PATH`. Without this
+> entry every call would prompt, and a skill that interrupts a refinement loop to ask permission per
+> command is a skill nobody runs. The reading is read-only and bounded; ADR-0033 and
+> `references/sources.md` carry the rules, and the shift-left prohibition still holds for anything
+> that does not exist yet.
+>
 > **Setup note:** the Atlassian MCP must be connected (OAuth) with **write** scope for the Step 7 description update — defined at project scope in `.mcp.json`. Its read + write tools are pre-authorized in `allowed-tools` above so the loop doesn't prompt each call. Write-back happens only on your explicit approval (per ADR-0013).
 
 ## References
