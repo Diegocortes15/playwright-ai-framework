@@ -17,7 +17,6 @@ Score the **whole ticket** (Feature + every AC). Treat each AC independently for
 7. **Bucket coverage** — Positive / Negative / Edge considered for the feature; call out missing buckets (per `from-issue/references/bucket-classification.md`). Gap → propose the missing negative/edge AC for the user to accept or decline.
 8. **Automatable** — flag manual-only ACs (visual aesthetics, subjective copy) per `from-issue/references/qa-analysis.md`. Gap → recommend marking the AC out of automation scope.
 9. **Coverage (lightweight flag)** — does the AC overlap something already automated? Heuristic match of the AC's behavior against existing test titles + `tests/<feature>/` files. This is a **flag, not a blocker** ("AC2 looks already covered by `tests/login/login.spec.ts` — drop or confirm"). Degrades gracefully: nothing automated → never fires. (`/from-issue` still dedupes at generation time per ADR-0010; this surfaces it earlier, to the human.)
-
     **And read the siblings, not only the code.** When the ticket names another ticket — in an
     `Out of scope` list, or as "that is `<KEY>`" — the coverage check reads **that ticket's
     criteria too**. Two tickets that each assume the other covers a behaviour leave it covered by
@@ -39,6 +38,15 @@ Score the **whole ticket** (Feature + every AC). Treat each AC independently for
     while asserting the bug is correct, and nothing ever revisits it. This happened: SW-16 was
     first written as characterization of a broken sort, which would have locked in the defect as
     expected behaviour; rewritten as intended behaviour, it correctly blocked and produced SW-17.
+
+    **A third state exists and must not be collapsed into the other two: `observed`.** When a gap
+    was closed by reading the live application — permitted only for a reference that already
+    exists, per `sources.md` — the fact is an observation until a person promotes it. It reaches
+    the approval gate labelled, and the write-back marks it `OBSERVED`. The reason to keep it
+    separate is that an observation promoted without anyone noticing is exactly the SW-16 failure
+    with an extra step: a defect becomes expected behaviour, and the provenance that would have
+    caught it was never written down. `observed` says where the line came from; `intended` versus
+    `currently does` says what it claims.
 
 12. **Declared boundaries** — before proposing a criterion, read what the ticket says is **not**
     its own: an `Out of scope` list, a "that is `<KEY>`" pointer, a sibling named in the text.

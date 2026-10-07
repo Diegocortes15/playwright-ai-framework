@@ -43,6 +43,27 @@ Repeat until the gap list is empty (or the user says "good enough"):
 
 **Never** silently guess a residual gap; either a source closes it or the user does. Abort ONLY if the ticket has no extractable behavior at all and the user provides nothing: _"Nothing testable in `<KEY>` and no source provided — cannot refine."_
 
+### 5a. When the gap is about something that already exists, you may look
+
+Before asking a person to describe a thing the application already shows, ask whether the thing the
+ticket references **exists today**. If it does, that screen is the reference the ticket named, and
+reading it beats asking someone to recall it — this repository's own documentation was wrong three
+times in one week on claims written from memory.
+
+1. **Ask permission first**, naming what you want to open and why: _"AC 2 says 'the same error as
+   the login screen'. That screen exists. Open it and record the exact text?"_
+2. **Drive it read-only** via the `playwright-cli` skill. No submissions, no state anyone cares about.
+3. **Record it as an observation**, with the date and the environment — never straight into an AC.
+4. **Carry it to Step 6 marked `observed`**, so the approval gate is where it becomes a criterion.
+5. **If the app contradicts the ticket or `docs/app/`, stop and report it.** That is a finding, and
+   whether the ticket or the app is wrong is not yours to settle (ADR-0030).
+
+If the reference does **not** exist yet, do not open anything: the full reasoning, the four bounding
+rules and the `OBSERVED` marker are in [`sources.md`](sources.md), and the decision is ADR-0033.
+
+Cost, measured: about 8.5 seconds to open and navigate, 1 second for a snapshot. Cheap enough that
+no preflight step is warranted.
+
 ## 6. Present for approval
 
 Show the user, in one message:
@@ -51,6 +72,7 @@ Show the user, in one message:
 - **Resolved assumptions** — the `assumptions[]` list (what was inferred and from where).
 - **Coverage flags** — any rubric item-9 overlaps ("AC2 looks already covered by …"), including anything found by reading a sibling ticket the boundaries name.
 - **Boundary crossings, each as its own item** — any criterion that enters what the ticket declared out of scope (rubric item 12). Name the boundary, name the sibling that owns it, and offer **keep / drop / move**. Never fold one into the AC list, where it reads as something the ticket asked for.
+- **Observed facts, listed separately and never folded into the AC list** — anything Step 5a read from the live app, each with the date, the environment and the screen it came from. Say plainly that these are observations and ask which to promote: _"AC 2's error text was read from the login screen on 2026-10-07 against production. Promote it to a criterion, or leave it as context?"_ An observation nobody promoted does not become an AC.
 - The exact `Refined Acceptance Criteria` block that will be written, shown as readable Markdown — say which lozenge each AC carries rather than printing raw ADF, which nobody can review. Structure and node types are in [`writeback-template.md`](writeback-template.md).
 
 Ask: **"Write this back to `<KEY>`? (yes / edit / no)"**
@@ -83,4 +105,5 @@ are the agent's own process, not the ticket's content.
 - No sources + user provides none → still score + ask per gap; never invent ground truth.
 - Decline at approval → no mutation; emit locally.
 - Write fails → report verbatim; result preserved in-session.
-- No live app: `/refine-ticket` never drives a running app. Facts not in the ticket/docs/automation are asked of the user; exact selectors/strings are `/from-issue`'s job at generation time.
+- No environment available: say the reference could not be verified and ask the user, rather than assuming. Not a failure.
+- Reference does not exist yet: the app is not consulted at all — that is the shift-left rule (ADR-0033). Facts not in the ticket/docs/automation are asked of the user; exact selectors/strings are `/from-issue`'s job at generation time.

@@ -171,6 +171,104 @@ If you are generating for an app whose team already uses fluent Page Objects, th
 disagreement and not a detail: say so in the obstacles section rather than quietly following the
 house style of whichever repository you are standing in.
 
+## An assertion that cannot fail is not a test
+
+Playwright's strict mode does **not** cover this. Strict mode fails when a *locator* matches
+several elements. It says nothing when a locator matches exactly one element whose *text value*
+also appears elsewhere on the page — and that is the whole failure class below.
+
+### The obligation
+
+For every test you write, the pull-request body answers three things:
+
+1. **How could this test pass while being wrong?**
+2. **What did you do to rule that out?**
+3. **What did you NOT rule out?**
+
+The method is yours to choose — different tests are wrong in different ways, and a fixed
+checklist gets answered by reflex, which is nearly as useless as not answering. The third part is
+what keeps the first two honest: it is the same device as `Obstacles encountered`, which renders
+even when empty so that a deliberate omission arrives labelled at review time rather than
+disappearing.
+
+**You choose the method. You do not decide whether the residual risk is acceptable** — that is the
+reviewer's, for the same reason a failing test is never the agent's to classify.
+
+### The repertoire
+
+Not a checklist. Pick what fits the way this particular test could be wrong.
+
+| How it could be wrong | What rules it out |
+| --- | --- |
+| The asserted value is not unique on screen | Drive the app to a state where the candidates differ |
+| It would pass without its Act step | Delete the Act and run once |
+| A query returns a collection, verified with one item | Verify it with more than one |
+| It asserts an absence | Reach the state where the thing was present first |
+| The subject is network-shaped, and the app has an API | Inject the fault from outside |
+| You doubt the assertion executes at all | Change the expected value once, as a diagnostic — see the warning below |
+
+### The worked example, measured in this repository
+
+On the cart page holding one product, the text `"1"` is on **two** elements:
+
+```
+span[data-test="shopping-cart-badge"]     ← what the test means
+div[data-test="item-quantity"]            ← what also says "1"
+```
+
+`tests/cart/cart.spec.ts` asserts the badge count **while on that page**. The locator is correct
+and strict mode is satisfied, so nothing complains. But the test would pass just the same reading
+the row quantity, which means it is not *evidence* that the badge works — only that something on
+that screen says `1`.
+
+What rules it out: two products instead of one. Then the badge reads `2` while each row reads `1`,
+the candidates differ, and a locator pointing at the wrong one goes red.
+
+### Why "change the expected value and watch it go red" is not enough
+
+This is worth knowing by name, because it is a real practice in contexts where it works, and
+leaving it unmentioned reads as an oversight.
+
+**Assertion falsification** — running an assertion against known-correct behaviour and discarding
+it if it fails — is a documented step in automated assertion generation. Its own literature says
+the filter is insufficient: it removes *invalid* assertions and leaves *weak* ones, "trivial to
+satisfy and would not trigger any error if the target class had incorrect behaviour."
+
+Demonstrated here rather than argued. A test was written that claimed to verify the cart badge
+while its locator read `item-quantity`. It passed green. Changing its expected value from `1` to
+`99` turned it red — so the falsification pass reported the test as working, about a test reading
+the wrong element entirely. **It confirms that the assertion runs. It does not confirm the
+assertion is about what you think.**
+
+It also carries a hazard of habit rather than mechanics: once editing the expected value to see
+red is routine, editing it to match whatever the app returned is one keystroke away, and that
+turns a defect into the specification. So the rule that comes with it: **the expected value comes
+from the acceptance criterion, never from the run.** A mismatch is a finding for a person.
+
+Keep it as a one-off diagnostic for the sixth row of the table, never as a ritual.
+
+### The two canonical forms, and why neither is available here
+
+- **Mutation testing** injects faults into the *production code* and verifies the suite catches
+  them; a surviving mutant names an assertion that should have caught a regression and did not.
+  It is a **white-box** technique that requires the source of the program under test. We test a
+  deployed third-party application. We cannot mutate it.
+- **TDD red-green** sees the test fail *because the feature does not exist yet*, then implements.
+  Equally unavailable: the feature already exists, so there is no "red because unimplemented" to
+  observe.
+
+Both are good practice where they apply. Neither applies to end-to-end tests against an
+application you do not own, and the obligation above is the black-box substitute: ask by
+inspection what mutation would ask by execution.
+
+**What would partially enable the real thing:** faulting the *environment* instead of the code.
+The framework can intercept the network, so a request can be aborted or answered with a 500 and
+the test checked for red. Measured against saucedemo across a full journey — login, inventory,
+detail, cart, checkout, finish — there are **zero** XHR or fetch calls to its own backend: one
+document, one script, one stylesheet, seven images, and a cart that lives in `localStorage`. There
+is nothing meaningful to fault. Point this framework at an application with an API and that
+changes, and this is the paragraph to come back to.
+
 ## Web-first assertions (auto-retrying)
 
 Always use `expect(locator).matcher()` patterns. They auto-retry until passing or timeout.
