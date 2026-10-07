@@ -107,10 +107,57 @@ Rewrite: every test has an `expect(...)` at the end.
 ```ts
 test('add product', async ({ inventoryPage }) => {
   await inventoryPage.goto();
-  await inventoryPage.addProductToCart('Sauce Labs Backpack');
-  expect(await inventoryPage.header.cartBadge.getCount()).toBe(1);
+  await inventoryPage.addToCart('Sauce Labs Backpack');
+  await expect.poll(() => inventoryPage.getCartBadgeCount()).toBe(1);
 });
 ```
+
+The previous version of this rewrite was itself non-compliant twice over, which is worth naming
+because it sat in a reference file that skills read: it used `expect(await …)`, which
+`eslint.config.js` fails outright — awaiting first takes one DOM snapshot and loses auto-waiting —
+and it reached `inventoryPage.header.cartBadge` from the test, which composition rule #4 forbids
+(tests know Pages and Data, never Components). The compliant form was one method away the whole
+time.
+
+### Anti-Self-validating: the assertion that could have read another element
+
+The sibling of the one above, and harder to see: this test **has** an `expect` and still cannot
+fail for the reason it claims.
+
+```ts
+// BAD: on the cart page with one product, the badge and the row quantity BOTH read "1".
+// This passes whether the locator resolves to the badge or to the quantity.
+test('the cart badge shows one', async ({ inventoryPage, cartPage }) => {
+  await inventoryPage.goto();
+  await inventoryPage.addToCart('Sauce Labs Backpack');
+  await inventoryPage.openCart();
+  await expect.poll(() => cartPage.getCartBadgeCount()).toBe(1);
+});
+```
+
+Strict mode is satisfied — the locator matches exactly one element. What is ambiguous is the
+**value**, and nothing in Playwright checks that.
+
+Rewrite: drive the app to a state where the candidates differ, so a wrong locator goes red.
+
+```ts
+// Two products: the badge reads 2, each row reads 1. Now the assertion can only pass
+// by reading the badge.
+test('the cart badge shows two', async ({ inventoryPage, cartPage }) => {
+  await inventoryPage.goto();
+  await inventoryPage.addToCart('Sauce Labs Backpack');
+  await inventoryPage.addToCart('Sauce Labs Bike Light');
+  await inventoryPage.openCart();
+  await expect.poll(() => cartPage.getCartBadgeCount()).toBe(2);
+});
+```
+
+And the collection form of the same mistake: **a query that returns a collection is verified
+against more than one item, or reported as unverified.** One row is the state in which a query
+that reads only the first row looks perfectly correct.
+
+`playwright-conventions.md` carries the full obligation this comes from, including why changing
+the expected value to watch it go red does not substitute for it.
 
 ## When in doubt
 
