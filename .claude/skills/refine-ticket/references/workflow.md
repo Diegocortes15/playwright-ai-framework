@@ -49,7 +49,8 @@ Show the user, in one message:
 
 - **Before → After** of the ACs (the hardened set).
 - **Resolved assumptions** — the `assumptions[]` list (what was inferred and from where).
-- **Coverage flags** — any rubric item-9 overlaps ("AC2 looks already covered by …").
+- **Coverage flags** — any rubric item-9 overlaps ("AC2 looks already covered by …"), including anything found by reading a sibling ticket the boundaries name.
+- **Boundary crossings, each as its own item** — any criterion that enters what the ticket declared out of scope (rubric item 12). Name the boundary, name the sibling that owns it, and offer **keep / drop / move**. Never fold one into the AC list, where it reads as something the ticket asked for.
 - The exact `Refined Acceptance Criteria` block that will be written, shown as readable Markdown — say which lozenge each AC carries rather than printing raw ADF, which nobody can review. Structure and node types are in [`writeback-template.md`](writeback-template.md).
 
 Ask: **"Write this back to `<KEY>`? (yes / edit / no)"**
